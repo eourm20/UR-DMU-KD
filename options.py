@@ -10,7 +10,7 @@ def parse_args():
     parser.add_argument('--log_path', type = str, default = 'logs/')
     parser.add_argument('--modal', type = str, default = 'rgb',choices = ["rgb,flow,both"])
     parser.add_argument('--model_path', type = str, default = 'models/')
-    parser.add_argument('--lr', type = str, default = '[0.0001]*3000', help = 'learning rates for steps(list form)')
+    parser.add_argument('--lr', type = str, default = '[0.0001]*300', help = 'learning rates for steps(list form)')
     parser.add_argument('--batch_size', type = int, default = 64)
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--num_segments', type = int, default = 32)

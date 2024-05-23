@@ -116,7 +116,7 @@ if __name__ == "__main__":
 
         if (step - 1) % len(abnormal_train_loader) == 0:
             abnormal_loader_iter = iter(abnormal_train_loader)
-        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, task_logger, step)
+        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, task_logger ,step)
         if step % 10 == 0 and step > 10:
             test(net, config, test_loader, test_info, step)
             task_logger.report_scalar(title = "AUC",series = "AUC",value = test_info["auc"][-1], iteration = 0)
