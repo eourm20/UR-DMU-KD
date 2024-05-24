@@ -9,6 +9,24 @@ from model import WSAD
 from time import time
 import matplotlib.pyplot as plt
 
+
+# 연속된 1의 구간을 찾는 함수
+def find_continuous_ones(anomaly_info):
+    intervals = []
+    start = None
+    
+    for i, value in enumerate(anomaly_info):
+        if value == 1 and start is None:
+            start = i  # 연속 구간의 시작 지점
+        elif value == 0 and start is not None:
+            intervals.append((start, i - 1))  # 연속 구간의 끝 지점
+            start = None  # 다음 구간을 위해 초기화
+    # 마지막 요소가 1인 경우 처리
+    if start is not None:
+        intervals.append((start, len(anomaly_info) - 1))
+    
+    return intervals
+
 def forward_batch(b_data,net):
     b_data = b_data.transpose([0, 4, 1, 2, 3])
     b_data = torch.from_numpy(b_data)   # b,c,t,h,w  # 40x3x16x224x224 
@@ -63,21 +81,54 @@ def batch_split(clipped_length,batch_size,chunk_size):
     batch_num = int(np.ceil(chunk_num / batch_size))   
     frame_indices = np.array_split(frame_indices, batch_num, axis=0)
     return frame_indices,batch_num
-def cv2show(video_path,score_list):
+def cv2show(video_path, score_list, normal):
+    if normal != True:
+        video_info = video_path.split('/')[-1].split('.')[0] + '_frames.txt'
+        with open(f'list/test/gt/{video_info}', 'r') as file:
+            lines = file.readlines()
+            anomaly_info = [int(line.strip()) for line in lines]
+    else:
+        anomaly_info = [0] * len(score_list)
+        
     frame_num = 1
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         print("video capture open fail")
         exit(0)
-    frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
     while True:
         ret, frame = cap.read()
         if not ret:
             print("read over")
             break
-        frame = cv2.resize(frame, (340, 256)) 
-        frame = frame[16:240, 58:282, :]
+        
+        intervals = find_continuous_ones(anomaly_info)
+        
+        plot_height = 200
+        plot_width = frame.shape[1]  # Set the plot width to match the frame width
+        figsize = (plot_width / 100, plot_height / 100)
+        original_frame_indices = np.linspace(0, frame_count, num=len(score_list), endpoint=False)
+        
+        fig, ax = plt.subplots(figsize=figsize)
+        ax.set_ylim(0, 1)
+        ax.set_xlim(0, frame_count)
+        
+        for start, end in intervals:
+            ax.axvspan(start, end, color='red', alpha=0.2)
+            
+        ax.plot(original_frame_indices[:frame_num], score_list[:frame_num], label='Base Score')
+        ax.legend(loc='upper right', fontsize='small')
+        fig.canvas.draw()
+        
+        plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+        plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        plt.close(fig)
+        
+        plot_img_resized = cv2.resize(plot_img_np, (frame.shape[1], plot_height))
+        
+        frame = cv2.resize(frame, (plot_width, int(frame.shape[0] * plot_width / frame.shape[1])))
         score = score_list[frame_num-1]
         left_x_up = 10
         left_y_up = 10
@@ -87,17 +138,19 @@ def cv2show(video_path,score_list):
         word_y = left_y_up + 20
         cv2.rectangle(frame, (left_x_up, left_y_up), (right_x_down, right_y_down), (55,255,155), 2)
         cv2.putText(frame, 'frame_num:{}'.format(frame_num), (word_x, word_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55,255,155), 1)
-        if score>0.5:
-            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,155), 1)
+        if score > 0.5:
+            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,155), 1)
         else:
-            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y+20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55,255,155), 1)
-        frame_num+=1
-        cv2.imshow('det_res',frame)
+            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55,255,155), 1)
+        
+        combined_frame = np.vstack((frame, plot_img_resized))
+        
+        frame_num += 1
+        cv2.imshow('det_res', combined_frame)
         key = cv2.waitKey(25)      
         if key == ord('q'):         
             cap.release()          
             break
-        
 
 if __name__=="__main__":
     start_time = time()
@@ -108,9 +161,13 @@ if __name__=="__main__":
     i3d.cuda()
 
     ad_net = WSAD(input_size = 1024, flag = "Test", a_nums = 60, n_nums = 60)
-    ad_net.load_state_dict(torch.load("models/xd_trans_2022.pkl"))
+    ad_net.load_state_dict(torch.load("models/ucf_trans_2022.pkl"))
     ad_net.cuda()
-    input_dir = "data/2.mp4"
+    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Burglary/Burglary021_x264.mp4"
+    if "Normal" in input_dir.split('/')[-1].split('_')[0]:
+        normal = True
+    else:
+        normal = False
     if os.path.isdir(input_dir):
         frames = load_video_dir(input_dir)
     else:
@@ -140,6 +197,6 @@ if __name__=="__main__":
     cost_time = end_time - start_time
     print("cost:{}".format(cost_time))
     print("fps:{}".format(frames_cnt/cost_time))
-    cv2show(input_dir,scores)
+    cv2show(input_dir,scores, normal)
     cv2.destroyAllWindows()
     
