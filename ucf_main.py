@@ -124,11 +124,11 @@ if __name__ == "__main__":
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_Teacher_best_record_{}.txt".format(config.seed)))
 
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    "ucf_trans_{}.pkl".format(config.seed)))
+                    args.model_file))
             if step == config.num_iters:
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    "ucf_trans_{}.pkl".format(step)))
+                    args.model_file.split('.')[0]+"_{}.pkl".format(step)))
 
