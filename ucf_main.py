@@ -70,7 +70,7 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU", task_name="Teacher", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU", task_name="label25", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     
     net = WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
