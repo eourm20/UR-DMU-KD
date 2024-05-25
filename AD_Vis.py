@@ -81,6 +81,7 @@ def batch_split(clipped_length,batch_size,chunk_size):
     batch_num = int(np.ceil(chunk_num / batch_size))   
     frame_indices = np.array_split(frame_indices, batch_num, axis=0)
     return frame_indices,batch_num
+
 def cv2show(video_path, score_list, normal):
     if normal != True:
         video_info = video_path.split('/')[-1].split('.')[0] + '_frames.txt'
@@ -95,8 +96,21 @@ def cv2show(video_path, score_list, normal):
     if not cap.isOpened():
         print("video capture open fail")
         exit(0)
-        
+    
+    fps = cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    height, width = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    plot_height = 200
+    plot_width = width
+    
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    if normal:
+        file_name = 'normal'
+    else:
+        file_name = 'abnormal'
+    video_name = video_path.split('/')[-1].split('.')[0]
+    file_name = file_name + '_' + video_name
+    out = cv2.VideoWriter(f'video_score/{file_name}.mp4', fourcc, fps, (width, height + plot_height))
     
     while True:
         ret, frame = cap.read()
@@ -106,8 +120,6 @@ def cv2show(video_path, score_list, normal):
         
         intervals = find_continuous_ones(anomaly_info)
         
-        plot_height = 200
-        plot_width = frame.shape[1]  # Set the plot width to match the frame width
         figsize = (plot_width / 100, plot_height / 100)
         original_frame_indices = np.linspace(0, frame_count, num=len(score_list), endpoint=False)
         
@@ -126,9 +138,8 @@ def cv2show(video_path, score_list, normal):
         plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
         plt.close(fig)
         
-        plot_img_resized = cv2.resize(plot_img_np, (frame.shape[1], plot_height))
+        plot_img_resized = cv2.resize(plot_img_np, (width, plot_height))
         
-        frame = cv2.resize(frame, (plot_width, int(frame.shape[0] * plot_width / frame.shape[1])))
         score = score_list[frame_num-1]
         left_x_up = 10
         left_y_up = 10
@@ -136,21 +147,28 @@ def cv2show(video_path, score_list, normal):
         right_y_down = int(left_y_up + 60)
         word_x = left_x_up + 10
         word_y = left_y_up + 20
-        cv2.rectangle(frame, (left_x_up, left_y_up), (right_x_down, right_y_down), (55,255,155), 2)
-        cv2.putText(frame, 'frame_num:{}'.format(frame_num), (word_x, word_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55,255,155), 1)
+        cv2.rectangle(frame, (left_x_up, left_y_up), (right_x_down, right_y_down), (55, 255, 155), 2)
+        cv2.putText(frame, 'frame_num:{}'.format(frame_num), (word_x, word_y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55, 255, 155), 1)
         if score > 0.5:
-            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,155), 1)
+            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 155), 1)
         else:
-            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55,255,155), 1)
+            cv2.putText(frame, 'frame_score:{:.2f}'.format(score), (word_x, word_y + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (55, 255, 155), 1)
         
         combined_frame = np.vstack((frame, plot_img_resized))
         
-        frame_num += 1
+        out.write(combined_frame)
         cv2.imshow('det_res', combined_frame)
-        key = cv2.waitKey(25)      
-        if key == ord('q'):         
-            cap.release()          
+
+        
+        frame_num += 1
+        key = cv2.waitKey(25)
+        if key == ord('q'):
             break
+
+    cap.release()
+    out.release()
+    cv2.destroyAllWindows()
+
 
 if __name__=="__main__":
     start_time = time()
@@ -163,7 +181,7 @@ if __name__=="__main__":
     ad_net = WSAD(input_size = 1024, flag = "Test", a_nums = 60, n_nums = 60)
     ad_net.load_state_dict(torch.load("models/ucf_trans_300.pkl"))
     ad_net.cuda()
-    input_dir = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Shooting/Shooting008_x264.mp4"
+    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Burglary/Burglary021_x264.mp4"
     if "Normal" in input_dir.split('/')[-1].split('_')[0]:
         normal = True
     else:
