@@ -14,7 +14,6 @@ from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog
 
 
-
 class detectron2_pose:
     def __init__(self):
         # Set up the configuration and load a pre-trained model from Detectron2's model zoo
