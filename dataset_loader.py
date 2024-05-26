@@ -21,9 +21,9 @@ class UCF_crime(data.DataLoader):
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
-                self.vid_list = self.vid_list[104:]
+                self.vid_list = self.vid_list[411:]
             elif is_normal is False:
-                self.vid_list = self.vid_list[:104]
+                self.vid_list = self.vid_list[:411]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal=[True/False]")

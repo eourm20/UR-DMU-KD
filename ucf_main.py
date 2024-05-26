@@ -131,3 +131,4 @@ if __name__ == "__main__":
             if step == config.num_iters:
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
                     args.model_file.split('<')[0]+"{}.pkl".format(step)))
+
