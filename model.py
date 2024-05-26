@@ -26,13 +26,15 @@ class ADCLS_head(Module):
     def forward(self, x):
         return self.mlp(x)
 
-class WSAD(Module):
+class Student_WSAD(Module):
     def __init__(self, input_size, flag, a_nums, n_nums):
         super().__init__()
         self.flag = flag
         self.a_nums = a_nums
         self.n_nums = n_nums
-
+        self.input_size = input_size
+        
+        self.preprocess = None  # preprocess 속성을 None으로 초기화
         self.embedding = Temporal(input_size,512)
         self.triplet = nn.TripletMarginLoss(margin=1)
         self.cls_head = ADCLS_head(1024, 1)
@@ -58,9 +60,29 @@ class WSAD(Module):
         else:
             b, t, d = x.size()
             n = 1
+        
+        # 입력 차원을 확인합니다.
+        input_dim = x.shape[-1]  # x는 [batch_size, seq_len, features] 형태로 가정합니다.
+
+        # 입력 차원이 모델이 기대하는 차원과 다른 경우 preprocess 레이어를 동적으로 생성 및 적용합니다.
+        if input_dim != self.input_size:
+            # 동적으로 preprocess 레이어 생성
+            if self.preprocess is None:
+                self.preprocess = nn.Linear(input_dim, self.input_size)
+                # preprocess 레이어 가중치 초기화
+                torch.nn.init.xavier_uniform_(self.preprocess.weight)
+                self.preprocess.bias.data.fill_(0)
+                # cuda로 이동
+                self.preprocess = self.preprocess.cuda()
+                
+            x = self.preprocess(x)
+        else:
+            x = x
+            
+            
         x = self.embedding(x)
         x = self.selfatt(x)
-        if self.flag == "Train":
+        if self.flag == "Label_Train":
             N_x = x[:b*n//2]                  #### Normal part
             A_x = x[b*n//2:]                  #### Abnormal part
             A_att, A_aug = self.Amemory(A_x)   ###bt,btd,   anomaly video --->>>>> Anomaly memeory  at least 1 [1,0,0,...,1]
@@ -119,10 +141,56 @@ class WSAD(Module):
            
             pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
             return {"frame": pre_att}
-    
+
+class Teacher_WSAD(Module):
+    def __init__(self, input_size, flag, a_nums, n_nums):
+        super().__init__()
+        self.flag = flag
+        self.a_nums = a_nums
+        self.n_nums = n_nums
+
+        self.embedding = Temporal(input_size,512)
+        self.triplet = nn.TripletMarginLoss(margin=1)
+        self.cls_head = ADCLS_head(1024, 1)
+        self.Amemory = Memory_Unit(nums=a_nums, dim=512)
+        self.Nmemory = Memory_Unit(nums=n_nums, dim=512)
+        self.selfatt = Transformer(512, 2, 4, 128, 512, dropout = 0.5)
+        self.encoder_mu = nn.Sequential(nn.Linear(512, 512))
+        self.encoder_var = nn.Sequential(nn.Linear(512, 512))
+        self.relu = nn.ReLU()
+    def _reparameterize(self, mu, logvar):
+        std = torch.exp(logvar).sqrt()
+        epsilon = torch.randn_like(std)
+        return mu + epsilon * std
+
+    def latent_loss(self, mu, var):
+        kl_loss = torch.mean(-0.5 * torch.sum(1 + var - mu ** 2 - var.exp(), dim = 1))
+        return kl_loss
+
+    def forward(self, x):
+        if len(x.size()) == 4:
+            b, n, t, d = x.size()
+            x = x.reshape(b * n, t, d)
+        else:
+            b, t, d = x.size()
+            n = 1
+        x = self.embedding(x)
+        x = self.selfatt(x)
+        
+        _, A_aug = self.Amemory(x)
+        _, N_aug = self.Nmemory(x)  
+
+        A_aug = self.encoder_mu(A_aug)
+        N_aug = self.encoder_mu(N_aug)
+
+        x = torch.cat([x, A_aug + N_aug], dim=-1)
+        
+        pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
+        return {"frame": pre_att}
+        
 
 if __name__ == "__main__":
-    m = WSAD(input_size = 1024, flag = "Train", a_nums = 60, n_nums = 60).cuda()
+    m = Student_WSAD(input_size = 1024, flag = "Train", a_nums = 60, n_nums = 60).cuda()
     src = torch.rand(100, 32, 1024).cuda()
     out = m(src)["frame"]
     

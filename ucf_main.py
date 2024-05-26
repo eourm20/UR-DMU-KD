@@ -70,12 +70,16 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU", task_name="label25", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU", task_name="KD25", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     
-    net = WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    net = net.cuda()
-
+    student_net = Student_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
+    student_net = student_net.cuda()
+    
+    teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
+    teacher_net.load_state_dict(torch.load('models/trans_Teacher_<bound method Random_300.pkl', map_location = 'cuda'))
+    teacher_net = teacher_net.cuda()
+    
     normal_train_loader = data.DataLoader(
         UCF_crime(root_dir = config.root_dir, mode = 'Train', modal = config.modal, num_segments = 200, len_feature = config.len_feature, is_normal = True),
             batch_size = 64,
@@ -83,6 +87,11 @@ if __name__ == "__main__":
             worker_init_fn = worker_init_fn, drop_last = True)
     abnormal_train_loader = data.DataLoader(
         UCF_crime(root_dir = config.root_dir, mode = 'Train', modal = config.modal, num_segments = 200, len_feature = config.len_feature, is_normal = False),
+            batch_size = 64,
+            shuffle = True, num_workers = config.num_workers,
+            worker_init_fn = worker_init_fn, drop_last = True)
+    unlabeled_loader_iter = data.DataLoader(
+        Unlabeled_UCF_crime(root_dir = config.root_dir, modal = config.modal, num_segments = 200, len_feature = config.len_feature),
             batch_size = 64,
             shuffle = True, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn, drop_last = True)
@@ -98,11 +107,11 @@ if __name__ == "__main__":
 
     criterion = AD_Loss()
     
-    optimizer = torch.optim.Adam(net.parameters(), lr = config.lr[0],
+    optimizer = torch.optim.Adam(student_net.parameters(), lr = config.lr[0],
         betas = (0.9, 0.999), weight_decay = 0.00005)
 
     # wind = Visualizer(env = 'UCF_URDMU', port = "2022", use_incoming_socket = False)
-    test(net, config, test_loader, test_info, 0)
+    test(student_net, config, test_loader, test_info, 0)
     for step in tqdm(
             range(1, config.num_iters + 1),
             total = config.num_iters,
@@ -116,19 +125,22 @@ if __name__ == "__main__":
 
         if (step - 1) % len(abnormal_train_loader) == 0:
             abnormal_loader_iter = iter(abnormal_train_loader)
-        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, task_logger, step)
+            
+        if (step - 1) % len(unlabeled_loader_iter) == 0:
+            unlabeled_loader_iter = iter(unlabeled_loader_iter)
+            
+        train(student_net, teacher_net, normal_loader_iter,abnormal_loader_iter, unlabeled_loader_iter, optimizer, criterion, task_logger, step, config.num_iters)
         if step % 10 == 0 and step >= 10:
-            test(net, config, test_loader, test_info, step)
+            test(student_net, config, test_loader, test_info, step)
             task_logger.report_scalar(title = "AUC",series = "AUC",value = test_info["auc"][-1], iteration = step//10)
             task_logger.report_scalar(title = "AP",series = "AP",value = test_info["ap"][-1], iteration = step//10)
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_Teacher_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_label25_best_record_{}.txt".format(config.seed)))
 
-                torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file))
+                torch.save(student_net.state_dict(), os.path.join(args.model_path, \
+                    args.model_file.split('<')[0]+"{}.pkl".format(config.seed)))
             if step == config.num_iters:
-                torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file.split('.')[0]+"_{}.pkl".format(step)))
-
+                torch.save(student_net.state_dict(), os.path.join(args.model_path, \
+                    args.model_file.split('<')[0]+"{}.pkl".format(step)))

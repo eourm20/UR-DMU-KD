@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+import numpy as np
+import torch.nn.functional as F
 
 def norm(data):
     l2=torch.norm(data, p = 2, dim = -1, keepdim = True)
@@ -51,21 +53,82 @@ class AD_Loss(nn.Module):
         return cost, loss
 
 
+def update_ema_variables(teacher_model, student_model, initial_alpha, final_alpha, global_step, decay_rate):
+    # teacher_model: EMA가 적용될 티쳐 모델
+    # student_model: 현재 학습 중인 스튜던트 모델
+    # alpha: EMA decay rate, 값이 클수록 과거 가중치가 더 크게 반영됨
+    # global_step: 현재 학습 스텝
+    alpha = initial_alpha
+    # alpha = initial_alpha * np.exp(decay_rate * global_step)
+    for teacher_param, student_param in zip(teacher_model.parameters(), student_model.parameters()):
+        # 수정된 방식으로 add_ 사용
+        teacher_param.data.mul_(alpha).add_(student_param.data, alpha=1 - alpha)
+        
+# 이상 탐지 손실 함수(distillation loss)
+def consistency_loss(student_output, teacher_output, weight=2.0):
+    """
+    Consistency loss를 계산하는 함수. student 모델의 출력과 EMA를 적용한 teacher 모델의 출력 사이의 차이를 줄이는 목적.
+    """
+    return weight * F.mse_loss(student_output['frame'], teacher_output['frame'])
 
-def train(net, normal_loader, abnormal_loader, optimizer, criterion, task_logger, index):
-    net.train()
-    net.flag = "Train"
+
+def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_loader, student_optimizer, criterion, task_logger, index, num_iters):
+    unsupervised_losses = []
+    student_net.train()
+    student_net.flag = "Label_Train"
+    teacher_net.eval()
+    teacher_net.flag = "Unlabel_Train"
+    initial_alpha = 0.999
+    final_alpha = 0.8
+    decay_rate = np.log(final_alpha / initial_alpha) / (num_iters)
+    
+    
     ninput, nlabel = next(normal_loader)
     ainput, alabel = next(abnormal_loader)
+    ulinput, aug_ulinput = next(unlabel_loader)
+    
     _data = torch.cat((ninput, ainput), 0)
     _label = torch.cat((nlabel, alabel), 0)
     _data = _data.cuda()
     _label = _label.cuda()
-    predict = net(_data)
+    # 데이터 전처리 및 모델 입력 형태로 변환
+    pool = nn.AdaptiveAvgPool1d(512)
+    ulinput_lowres = pool(ulinput)
+    # 데이터를 GPU로 이동
+    _unlabeled_data = ulinput_lowres.cuda()
+    _aug_unlabeled_data = aug_ulinput.cuda()
+    
+
+    # ----------------- supervised loss -----------------
+    predict = student_net(_data)
     cost, loss = criterion(predict, _label)
-    optimizer.zero_grad()
+    student_optimizer.zero_grad()
     cost.backward()
-    optimizer.step()
+    student_optimizer.step()
+    
     for key in loss.keys():     
-        task_logger.report_scalar(title = 'Train Loss', series = 'Train Loss', value = loss[key].item(), iteration = index)
-        # wind.plot_lines(key, loss[key].item())
+        task_logger.report_scalar(title = 'Supervised Loss', series = '{}'.format(key), value = loss[key].item(), iteration = index)
+        
+    update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+1, decay_rate)
+    
+    # ----------------- unsupervised loss -----------------
+    with torch.no_grad():  # 교사 모델의 forward pass는 기울기 계산이 필요 없음
+        teacher_output = teacher_net(_aug_unlabeled_data)
+    
+    # autograd를 활성화하기 위해 student 모델의 forward pass는 torch.no_grad() 바깥에서 수행
+    student_output = student_net(_unlabeled_data)
+
+    # KD loss 계산
+    unsupervised_loss = consistency_loss(student_output, teacher_output)
+    unsupervised_losses.append(unsupervised_loss.item())
+    task_logger.report_scalar(title='Unsupervised Loss', series='KD loss', value=unsupervised_loss.item(), iteration=index)
+    student_optimizer.zero_grad()
+    unsupervised_loss.backward()
+    student_optimizer.step()
+
+    # EMA 업데이트
+    update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+2, decay_rate)
+            
+    
+            
+    task_logger.report_scalar(title = 'Train Loss', series = 'Total loss', value = loss['total_loss'].item()+unsupervised_loss.item(), iteration = index)

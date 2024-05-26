@@ -13,7 +13,7 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/pretrain/ucf-label-i3d_svr3_{}.list'.format(self.mode))
+        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
         for line in split_file:
@@ -63,6 +63,64 @@ class UCF_crime(data.DataLoader):
         else:
             return video_feature, label      
 
+class Unlabeled_UCF_crime(data.DataLoader):
+    def __init__(self, root_dir, modal, num_segments, len_feature, seed=-1):
+        if seed >= 0:
+            utils.set_seed(seed)
+        self.modal = modal
+        self.num_segments = num_segments
+        self.len_feature = len_feature
+        origin_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_0-4.list')
+        weak_aug_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_5-9.list')
+        origin_split_file = open(origin_split_path, 'r')
+        weak_aug_split_file = open(weak_aug_split_path, 'r')
+        self.origin_vid_list = []
+        self.weak_aug_vid_list = []
+        for line in origin_split_file:
+            self.origin_vid_list.append(line.split())
+        for line in weak_aug_split_file:
+            self.weak_aug_vid_list.append(line.split())
+        origin_split_file.close()
+        weak_aug_split_file.close()
+    def __len__(self):
+        return len(self.origin_vid_list)
+
+    def __getitem__(self, index):
+        # aug_features = np.empty(0)
+        data,aug_data = self.get_data(index)
+        return data,aug_data
+
+    def get_data(self, index):
+        origin_vid_info = self.origin_vid_list[index][0]
+        weak_aug_vid_info = self.weak_aug_vid_list[index][0]
+        name = origin_vid_info.split("/")[-1].split("_x264")[0]
+        origin_video_feature = np.load(origin_vid_info).astype(np.float32)
+        weak_aug_video_feature = np.load(weak_aug_vid_info).astype(np.float32) 
+
+        # if "Normal" in origin_video_feature.split("/")[-1]:
+        #     label = 0
+        # else:
+        #     label = 1
+        origin_new_feat = np.zeros((self.num_segments, origin_video_feature.shape[1])).astype(np.float32)
+        weak_aug_new_feat = np.zeros((self.num_segments, weak_aug_video_feature.shape[1])).astype(np.float32)
+        origin_r = np.linspace(0, len(origin_video_feature), self.num_segments + 1, dtype = int)
+        weak_aug_r = np.linspace(0, len(weak_aug_video_feature), self.num_segments + 1, dtype = int)
+        for i in range(self.num_segments):
+            if origin_r[i] != origin_r[i+1]:
+                origin_new_feat[i,:] = np.mean(origin_video_feature[origin_r[i]:origin_r[i+1],:], 0)
+            else:
+                origin_new_feat[i:i+1,:] = origin_video_feature[origin_r[i]:origin_r[i]+1,:]
+        origin_video_feature = origin_new_feat
+        
+        for i in range(self.num_segments):
+            if weak_aug_r[i] != weak_aug_r[i+1]:
+                weak_aug_new_feat[i,:] = np.mean(weak_aug_video_feature[weak_aug_r[i]:weak_aug_r[i+1],:], 0)
+            else:
+                weak_aug_new_feat[i:i+1,:] = weak_aug_video_feature[weak_aug_r[i]:weak_aug_r[i]+1,:]
+        weak_aug_video_feature = weak_aug_new_feat
+        
+        return origin_video_feature, weak_aug_video_feature     
+        
 class XDVideo(data.DataLoader):
     def __init__(self, root_dir, mode, modal, num_segments, len_feature, seed=-1, is_normal=None):
         if seed >= 0:
