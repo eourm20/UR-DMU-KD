@@ -70,8 +70,8 @@ class Unlabeled_UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        origin_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_0-4_svr3.list')
-        weak_aug_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_5-9_svr3.list')
+        origin_split_path = os.path.join('list','KD/unlabel_50/ucf-unlabel-i3d_0-4_svr3.list')
+        weak_aug_split_path = os.path.join('list','KD/unlabel_50/ucf-unlabel-i3d_5-9_svr3.list')
         origin_split_file = open(origin_split_path, 'r')
         weak_aug_split_file = open(weak_aug_split_path, 'r')
         self.origin_vid_list = []
@@ -82,8 +82,6 @@ class Unlabeled_UCF_crime(data.DataLoader):
             self.weak_aug_vid_list.append(line.split())
         origin_split_file.close()
         weak_aug_split_file.close()
-        self.origin_vid_list = self.origin_vid_list[:970]
-        self.weak_aug_vid_list = self.weak_aug_vid_list[:970]
     def __len__(self):
         return len(self.origin_vid_list)
 
