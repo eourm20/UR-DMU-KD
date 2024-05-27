@@ -77,7 +77,7 @@ if __name__ == "__main__":
     student_net = student_net.cuda()
     
     teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    teacher_net.load_state_dict(torch.load('models/trans_Teacher_2022.pkl', map_location = 'cuda'))
+    teacher_net.load_state_dict(torch.load('models/trans_Teacher_More_Train_2022.pkl', map_location = 'cuda'))
     teacher_net = teacher_net.cuda()
     
     normal_train_loader = data.DataLoader(
@@ -90,7 +90,7 @@ if __name__ == "__main__":
             batch_size = 64,
             shuffle = True, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn, drop_last = True)
-    unlabeled_loader_iter = data.DataLoader(
+    unlabeled_loader_loader = data.DataLoader(
         Unlabeled_UCF_crime(root_dir = config.root_dir, modal = config.modal, num_segments = 200, len_feature = config.len_feature),
             batch_size = 64,
             shuffle = True, num_workers = config.num_workers,
@@ -122,12 +122,15 @@ if __name__ == "__main__":
                 param_group["lr"] = config.lr[step - 1]
         if (step - 1) % len(normal_train_loader) == 0:
             normal_loader_iter = iter(normal_train_loader)
+            # print("normal_loader_iter")
 
         if (step - 1) % len(abnormal_train_loader) == 0:
             abnormal_loader_iter = iter(abnormal_train_loader)
+            # print('abnormal_loader_iter')
             
-        if (step - 1) % len(unlabeled_loader_iter) == 0:
-            unlabeled_loader_iter = iter(unlabeled_loader_iter)
+        if (step - 1) % len(unlabeled_loader_loader) == 0:
+            unlabeled_loader_iter = iter(unlabeled_loader_loader)
+            # print('unlabeled_loader_iter')
             
         train(student_net, teacher_net, normal_loader_iter,abnormal_loader_iter, unlabeled_loader_iter, optimizer, criterion, task_logger, step, config.num_iters)
         if step % 10 == 0 and step >= 10:
@@ -137,7 +140,7 @@ if __name__ == "__main__":
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_label25_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_KD25_best_record_{}.txt".format(config.seed)))
 
                 torch.save(student_net.state_dict(), os.path.join(args.model_path, \
                     args.model_file.split('<')[0]+"{}.pkl".format(config.seed)))

@@ -13,7 +13,7 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_{}.list'.format(self.mode))
+        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_svr3_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
         for line in split_file:
@@ -70,8 +70,8 @@ class Unlabeled_UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        origin_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_0-4.list')
-        weak_aug_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_5-9.list')
+        origin_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_0-4_svr3.list')
+        weak_aug_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_5-9_svr3.list')
         origin_split_file = open(origin_split_path, 'r')
         weak_aug_split_file = open(weak_aug_split_path, 'r')
         self.origin_vid_list = []
@@ -82,6 +82,8 @@ class Unlabeled_UCF_crime(data.DataLoader):
             self.weak_aug_vid_list.append(line.split())
         origin_split_file.close()
         weak_aug_split_file.close()
+        self.origin_vid_list = self.origin_vid_list[:970]
+        self.weak_aug_vid_list = self.weak_aug_vid_list[:970]
     def __len__(self):
         return len(self.origin_vid_list)
 
@@ -110,13 +112,12 @@ class Unlabeled_UCF_crime(data.DataLoader):
                 origin_new_feat[i,:] = np.mean(origin_video_feature[origin_r[i]:origin_r[i+1],:], 0)
             else:
                 origin_new_feat[i:i+1,:] = origin_video_feature[origin_r[i]:origin_r[i]+1,:]
-        origin_video_feature = origin_new_feat
-        
-        for i in range(self.num_segments):
+                
             if weak_aug_r[i] != weak_aug_r[i+1]:
                 weak_aug_new_feat[i,:] = np.mean(weak_aug_video_feature[weak_aug_r[i]:weak_aug_r[i+1],:], 0)
             else:
                 weak_aug_new_feat[i:i+1,:] = weak_aug_video_feature[weak_aug_r[i]:weak_aug_r[i]+1,:]
+        origin_video_feature = origin_new_feat
         weak_aug_video_feature = weak_aug_new_feat
         
         return origin_video_feature, weak_aug_video_feature     
