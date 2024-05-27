@@ -157,13 +157,13 @@ class Detectron2Pose:
 
 if __name__ == '__main__':
     pose_model = Detectron2Pose()
-    video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting003_x264.mp4')
+    video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4')
     if not video_cap.isOpened():
         print("Error opening video file")
 
     # fps = video_cap.get(cv2.CAP_PROP_FPS)
     print("total frame:", video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Fighting/Fighting003_x264.npy")
+    np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Fighting/Fighting033_x264.npy")
     print("np_frame shape:", np_frame.shape)
     fps = 16
     weight = 30
@@ -189,9 +189,9 @@ if __name__ == '__main__':
             else:
                 OHLoss.append(0)
                 
-            if frame_count == 1820:
+            if frame_count == 570:
                 print("ABNORMAL FRAME START")
-            if frame_count == 3103:
+            if frame_count == 840:
                 print("ABNORMAL FRAME END")
             if frame_count % 16 == 0:
                 fps_OHLoss = sum(OHLoss)/(fps*weight)
