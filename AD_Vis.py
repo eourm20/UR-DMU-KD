@@ -181,7 +181,7 @@ if __name__=="__main__":
     ad_net = WSAD(input_size = 1024, flag = "Test", a_nums = 60, n_nums = 60)
     ad_net.load_state_dict(torch.load("models/trans_label25_2022.pkl"))
     ad_net.cuda()
-    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting003_x264.mp4"
+    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Burglary/Burglary021_x264.mp4"
     if "Normal" in input_dir.split('/')[-1].split('_')[0]:
         normal = True
     else:
