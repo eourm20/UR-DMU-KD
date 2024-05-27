@@ -110,7 +110,7 @@ def cv2show(video_path, score_list, normal):
         file_name = 'abnormal'
     video_name = video_path.split('/')[-1].split('.')[0]
     file_name = file_name + '_' + video_name
-    out = cv2.VideoWriter(f'video_score/{file_name}.mp4', fourcc, fps, (width, height + plot_height))
+    out = cv2.VideoWriter(f'video_score/{file_name}_label25.mp4', fourcc, fps, (width, height + plot_height))
     
     while True:
         ret, frame = cap.read()
@@ -179,9 +179,9 @@ if __name__=="__main__":
     i3d.cuda()
 
     ad_net = WSAD(input_size = 1024, flag = "Test", a_nums = 60, n_nums = 60)
-    ad_net.load_state_dict(torch.load("models/ucf_trans_300.pkl"))
+    ad_net.load_state_dict(torch.load("models/trans_label25_2022.pkl"))
     ad_net.cuda()
-    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Burglary/Burglary021_x264.mp4"
+    input_dir = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting003_x264.mp4"
     if "Normal" in input_dir.split('/')[-1].split('_')[0]:
         normal = True
     else:
