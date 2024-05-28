@@ -326,10 +326,10 @@ if __name__ == '__main__':
     # 전체 학습 비디오 파일 이름
     split_file = open('list/ucf-train.list', 'r')
     vid_list = []
-    mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
+    mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
     for line in split_file:
         if "Testing" in line.split()[0]:
-            mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
+            mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
         video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
         vid_list.append(video_path)
     for video in tqdm(vid_list):
