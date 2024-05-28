@@ -13,7 +13,7 @@ import math
 def load_frame(frame_file):
 
     data = Image.open(frame_file) 
-    data = data.resize((340, 256), Image.ANTIALIAS)
+    data = data.resize((340, 256), Image.Resampling.LANCZOS)
 
     data = np.array(data)
     data = data.astype(float)
@@ -126,18 +126,20 @@ def run(args_item):
         full_features = [np.expand_dims(i, axis=0) for i in full_features]
         full_features = np.concatenate(full_features, axis=0)
         np.save(os.path.join(output_dir,save_file), full_features)
-
+        # for i in range(10):
+        #     if "normal" in video_name:
+        #         np.save("{}/{}_x264__{}.npy".format('feature_extract/RGB/Training_Normal_Videos_Anomaly',video_name,i),full_features[i])
+        #     np.save("{}/{}/{}_x264__{}.npy".format('feature_extract/RGB',video_name.split("_")[0],video_name,i),full_features[i])
         print('{} done: {} / {}, {}'.format(
             video_name, frame_cnt, clipped_length, full_features.shape))
-
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', default="rgb",type=str)
-    parser.add_argument('--load_model',default="model_rgb.pth", type=str)
-    parser.add_argument('--input_dir', default="UCF_Crime_Frames",type=str)
-    parser.add_argument('--output_dir',default="UCF_ten", type=str)
+    parser.add_argument('--load_model',default="feature_extract/model_rgb.pth", type=str)
+    parser.add_argument('--input_dir', default="feature_extract/UCF_Crime_Frames/te",type=str)
+    parser.add_argument('--output_dir',default="feature_extract/UCF_ten", type=str)
     parser.add_argument('--batch_size', type=int, default=20)
     parser.add_argument('--sample_mode', default="oversample",type=str)
     parser.add_argument('--frequency', type=int, default=16)
@@ -154,5 +156,8 @@ if __name__ == '__main__':
     
     nums=len(vid_list)
     print("leave {} videos".format(nums))
-    pool = Pool(4)
-    pool.map(run, zip([args.load_model]*nums, vid_list, [args.output_dir]*nums,[args.batch_size]*nums,range(nums)))
+    # with Pool(processes=4) as pool:
+    #     pool.map(run, zip([args.load_model]*nums, vid_list, [args.output_dir]*nums,[args.batch_size]*nums,range(nums)))
+    
+    # pool = Pool(4)
+    # pool.map(run, zip([args.load_model]*nums, vid_list, [args.output_dir]*nums,[args.batch_size]*nums,range(nums)))

@@ -5,14 +5,14 @@ import os.path as osp
 import glob
 from multiprocessing import Pool
 import cv2
-import ipdb
+# import ipdb
 
 def dump_frames(vid_item):
     full_path, vid_path, vid_id = vid_item
     print(vid_path)
     print(full_path)
     vid_name = vid_path.split("/")
-    out_full_path = osp.join("UCF_Crime_Frames", vid_name[0],vid_name[1].replace(".mp4",""))
+    out_full_path = osp.join("feature_extract/UCF_Crime_Frames", vid_name[0],vid_name[1].replace(".mp4",""))
     if not os.path.exists(out_full_path):
         os.makedirs(out_full_path)
    
@@ -37,8 +37,8 @@ def dump_frames(vid_item):
 
 def parse_args():
     parser = argparse.ArgumentParser(description='extract optical flows')
-    parser.add_argument('--src_dir',default="UCF-Crime/", type=str)
-    parser.add_argument('--out_dir',default="UCF_Crime_Frames/",type=str)
+    parser.add_argument('--src_dir',default="/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test/", type=str)
+    parser.add_argument('--out_dir',default="feature_extract/UCF_Crime_Frames/",type=str)
     parser.add_argument('--level', type=int,
                         choices=[1, 2],
                         default=2)
@@ -87,6 +87,6 @@ if __name__ == '__main__':
             '/'.join(p.split('/')[-2:])), fullpath_list))
     elif args.level == 1:
         vid_list = list(map(lambda p: p.split('/')[-1], fullpath_list))
-    ipdb.set_trace()
+    # ipdb.set_trace()
     pool = Pool(16)
     pool.map(dump_frames, zip(fullpath_list, vid_list, range(len(vid_list))))

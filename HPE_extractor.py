@@ -15,6 +15,16 @@ from scipy.spatial.distance import euclidean
 from detectron2.utils.visualizer import Visualizer
 from detectron2.data import MetadataCatalog
 
+from tqdm import tqdm
+import torch
+import argparse
+from PIL import Image
+from torch.autograd import Variable
+import numpy as np
+from feature_extract.i3dpt import I3D
+import math
+
+
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -142,10 +152,11 @@ def cluster_keypoints_with_loss(keypoints):
     centers = kmeans.cluster_centers_
     
     # 클러스터링 결과 시각화
-    colors = plot_clusters(keypoints_2d, labels, centers)
+    # colors = plot_clusters(keypoints_2d, labels, centers)
     
     if optimal_clusters == 1:
-        return 0, colors, labels
+        # return 0, colors, labels
+        return 0
     
     cluster_counts = np.bincount(labels)
     
@@ -179,7 +190,8 @@ def cluster_keypoints_with_loss(keypoints):
         final_loss += np.linalg.norm(center - centers[abnormal_cluster])
     
     # 평균 로스 반환
-    return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
+    # return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
+    return final_loss*(np.max(cluster_counts)) / len(centers)
     
     # # Dunn 지수 계산
     # dunn = dunn_index(keypoints_2d, labels, centers)
@@ -266,139 +278,204 @@ class Detectron2Pose:
         scaled_frame = (normalized_frame * 255).astype('uint8')  
         return scaled_frame
 
-def convert_to_bgr(person_colors):
-    bgr_colors = []
-    for color in person_colors:
-        r, g, b, a = color  # RGBA 순서
-        bgr = (int(b * 255), int(g * 255), int(r * 255))  # BGR 순서로 변환
-        bgr_colors.append(bgr)
-    return bgr_colors
+def load_frame_cv2(frame):
+    # 프레임을 RGB로 변환
+    # data = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # 크기 조정
+    data = cv2.resize(frame, (340, 256), interpolation=cv2.INTER_LINEAR)
+    # 데이터 타입 변환 및 정규화
+    # data = data.astype(float)
+    # data = (data * 2 / 255) - 1
+    # 조건 확인
+    # assert(data.max() <= 1.0)
+    # assert(data.min() >= -1.0)
+    return data
+
+def oversample_data_single_img(data):
+    # 단일 이미지 데이터의 형상 변경: (height, width, channels) -> (1, 1, height, width, channels)
+    data = data.reshape((1, 1) + data.shape)
+    # 데이터 오버샘플링 로직 적용
+    data_flip = np.array(data[:, :, :, ::-1, :])
+
+    data_1 = np.array(data[:, :, :224, :224, :])
+    data_2 = np.array(data[:, :, :224, -224:, :])
+    data_3 = np.array(data[:, :, 16:240, 58:282, :])
+    data_4 = np.array(data[:, :, -224:, :224, :])
+    data_5 = np.array(data[:, :, -224:, -224:, :])
+
+    data_f_1 = np.array(data_flip[:, :, :224, :224, :])
+    data_f_2 = np.array(data_flip[:, :, :224, -224:, :])
+    data_f_3 = np.array(data_flip[:, :, 16:240, 58:282, :])
+    data_f_4 = np.array(data_flip[:, :, -224:, :224, :])
+    data_f_5 = np.array(data_flip[:, :, -224:, -224:, :])
+
+    return [data_1, data_2, data_3, data_4, data_5, data_f_1, data_f_2, data_f_3, data_f_4, data_f_5]
+
+# # 예제 데이터 생성
+# data = np.random.rand(39, 16, 224, 224, 3)  # 3채널 RGB 데이터 예제
+
+# # 배치 데이터 오버샘플링
+# batch_data_ten_crop = oversample_data(data)
+
+# # 첫 번째 프레임 시각화
+# show_frames(batch_data_ten_crop, frame_idx=0)
+
 
 if __name__ == '__main__':
     pose_model = Detectron2Pose()
+    # 전체 학습 비디오 파일 이름
+    split_file = open('list/ucf-train.list', 'r')
+    vid_list = []
+    mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
+    for line in split_file:
+        if "Testing" in line.split()[0]:
+            mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
+        video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
+        vid_list.append(video_path)
+    for video in tqdm(vid_list):
+        video_name = video.split('/')[-2]+'/'+video.split('/')[-1]
     # video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4')
     # video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test/Testing_Normal_Videos_Anomaly/Normal_Videos_883_x264.mp4')
-    video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Shooting/Shooting022_x264.mp4')
-    if not video_cap.isOpened():
-        print("Error opening video file")
+        video_cap = cv2.VideoCapture(video)
+        if not video_cap.isOpened():
+            print("Error opening video file")
 
-    # fps = video_cap.get(cv2.CAP_PROP_FPS)
-    total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
-    print("total frame:", total_frame)
-    # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Fighting/Fighting033_x264.npy")
-    # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Testing_Normal_Videos_Anomaly/Normal_Videos_883_x264.npy")
-    np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Shooting/Shooting022_x264.npy")
+        # fps = video_cap.get(cv2.CAP_PROP_FPS)
+        total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        # print("total frame:", total_frame)
+        # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Fighting/Fighting033_x264.npy")
+        # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Testing_Normal_Videos_Anomaly/Normal_Videos_883_x264.npy")
+        # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Shooting/Shooting022_x264.npy")
 
-    print("np_frame shape:", np_frame.shape)
-    weight = 0.2
-    # abnormals = [570, 840]
-    # abnormals = [0, 0]
-    abnormals = [2850, 3300]
-    
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = video_cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
-    out = cv2.VideoWriter(f'ohloss_vis/Shooting022.mp4', fourcc, fps, (width, height))
-    all_OHLoss = []
-
-    frame_count = 0
-    OHLoss = []
-    while video_cap.isOpened():
-        ret, frame = video_cap.read()
-        if ret:
-            # if frame_count % frame_interval == 0:
-            keypoints, vis_keypoints = pose_model.get_pose(frame)
-            if len(keypoints) > 1:
-                person_num = len(keypoints)
-                # 랜덤 색상 생성
-                # colors = plt.cm.rainbow(np.linspace(0, 1, person_num))
-                ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
-                person_colors = [colors[label] for label in labels]
-                person_colors = convert_to_bgr(person_colors)
-                ohloss = ohloss * weight
-                OHLoss.append(ohloss)
-                for i in range(len(vis_keypoints)):
-                    person = vis_keypoints[i]
-                    for kp in person:
-                        cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, person_colors[i], -1)
-                # print("OHLoss:", OHLoss[-1])
-            else:
-                ohloss = 0 * weight
-                OHLoss.append(ohloss)
-                if len(vis_keypoints)==1:
-                    person = vis_keypoints[0]
-                    for kp in person:
-                        cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
+        # print("np_frame shape:", np_frame.shape)
+        weight = 0.2
+        # abnormals = [570, 840]
+        # abnormals = [0, 0]
+        # abnormals = [2850, 3300]
+        
+        # fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # fps = video_cap.get(cv2.CAP_PROP_FPS)
+        # frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        # height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
+        # out = cv2.VideoWriter(f'ohloss_vis/Shooting022.mp4', fourcc, fps, (width, height))
+        # all_OHLoss = []
+        for i in range(10):
+            globals()['all_OHLoss{}'.format(i)] = []
+            globals()['OHLoss{}'.format(i)] = []
+        frame_count = 0
+        OHLoss = []
+        while video_cap.isOpened():
+            ret, frame = video_cap.read()
+            if ret:
+                # if frame_count % frame_interval == 0:
                 
-                
-            if frame_count == abnormals[0]:
-                print("ABNORMAL FRAME START")
-            if frame_count == abnormals[1]:
-                print("ABNORMAL FRAME END")
-            fps_OHLoss = 0
+                # 배치 데이터 오버샘플링
+                data = load_frame_cv2(frame)
+                oversampled_data = oversample_data_single_img(data)
+                # 프레임 시각화
+                # plt.imshow(data)
+                # plt.title(f'Frame {frame_count}')
+                # plt.show()
+                # for i in range(10):
+                #     plt.imshow(oversampled_data[i][0][0])
+                #     plt.title(f'Frame {frame_count} - Crop {i+1}')
+                #     plt.show()
+                for i in range(len(oversampled_data)):
+                    crop_frame = oversampled_data[i][0][0]
+                    keypoints, vis_keypoints = pose_model.get_pose(crop_frame)
+                    if len(keypoints) > 1:
+                        person_num = len(keypoints)
+                        # 랜덤 색상 생성
+                        # colors = plt.cm.rainbow(np.linspace(0, 1, person_num))
+                        # ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
+                        ohloss = cluster_keypoints_with_loss(keypoints)
+                        # person_colors = [colors[label] for label in labels]
+                        # person_colors = convert_to_bgr(person_colors)
+                        ohloss = ohloss * weight
+                        globals()['OHLoss{}'.format(i)].append(ohloss)
+                        # for i in range(len(vis_keypoints)):
+                        #     person = vis_keypoints[i]
+                        #     for kp in person:
+                        #         cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, person_colors[i], -1)
+                        # print("OHLoss:", OHLoss[-1])
+                    else:
+                        ohloss = 0 * weight
+                        globals()['OHLoss{}'.format(i)].append(ohloss)
+                        # if len(vis_keypoints)==1:
+                        #     person = vis_keypoints[0]
+                        #     for kp in person:
+                        #         cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
+                        
+                        
+                    # if frame_count == abnormals[0]:
+                    #     print("ABNORMAL FRAME START")
+                    # if frame_count == abnormals[1]:
+                    #     print("ABNORMAL FRAME END")
+                    fps_OHLoss = 0
 
-            if frame_count % 15 == 0 and frame_count != 0:
-                fps_OHLoss = sum(OHLoss)/len(OHLoss)
-                # print("OHLoss num: ", len(OHLoss))
-                # print("OHLoss: ", OHLoss)
-                print('fps OHLoss: ',fps_OHLoss)
-                all_OHLoss.append(fps_OHLoss)
-                OHLoss = []
+                    if frame_count % 16 == 0 and frame_count != 0:
+                        fps_OHLoss = sum(globals()['OHLoss{}'.format(i)])/len(globals()['OHLoss{}'.format(i)])
+                        # print("OHLoss num: ", len(OHLoss))
+                        # print("OHLoss: ", OHLoss)
+                        # print('fps OHLoss: ',fps_OHLoss)
+                        globals()['all_OHLoss{}'.format(i)].append(fps_OHLoss)
+                        globals()['OHLoss{}'.format(i)] = []
 
-            if os.path.exists('plot_frame.png'):
-                plot_image = cv2.imread('plot_frame.png')
-                os.remove('plot_frame.png')
+                    # if os.path.exists('plot_frame.png'):
+                    #     plot_image = cv2.imread('plot_frame.png')
+                    #     os.remove('plot_frame.png')
+                    # else:
+                    #     plt.title('Clustered Keypoints')
+                    #     plt.xlabel('Dimension 1')
+                    #     plt.ylabel('Dimension 2')
+                    #     plt.xlim(-5, 5)
+                    #     plt.ylim(-5, 5)
+                    #     plt.savefig('plot_frame.png')
+                    #     plt.close()
+                    #     plot_image = cv2.imread('plot_frame.png')
+                    #     os.remove('plot_frame.png')
+                    # # 필요하다면 plot_image의 크기를 조정
+                    # plot_image_resized = cv2.resize(plot_image, (frame.shape[1], frame.shape[0]))
+
+                    # # 프레임과 플롯 이미지를 수평으로 결합
+                    # combined_frame = np.hstack((frame, plot_image_resized))
+                    # font = cv2.FONT_HERSHEY_SIMPLEX
+                    # org = (50, 50)
+                    # fontScale = 1
+                    # colors = (255, 0, 0)
+                    # thickness = 2
+                    # cv2.putText(combined_frame, 'OHLoss: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
+                    
+                    # figsize = (frame.shape[1]*2//50, (frame.shape[0])//50)
+                    # fig, ax = plt.subplots(figsize=figsize)
+                    # ax.set_ylim(0, 1)
+                    # ax.set_xlim(0, np_frame.shape[0])
+                    # ax.plot(all_OHLoss)
+                    # ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
+                    # ax.set_xlabel('Time')
+                    # ax.set_ylabel('OHLoss')
+                    # ax.set_title('OHLoss Over Time')
+                    # fig.canvas.draw()
+                    
+                    # plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                    # plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                    # plt.close(fig)
+                    # plot_img_resized = cv2.resize(plot_img_np,  (frame.shape[1]*2, frame.shape[0]-50))
+                    # combined_frame = np.vstack((combined_frame, plot_img_resized))
+                    # out.write(combined_frame)
+                    # cv2.imshow('frame', combined_frame)
+                    
+                    frame_count += 1
+                    key = cv2.waitKey(25)
+                    if key == ord('q'):
+                        break
             else:
-                plt.title('Clustered Keypoints')
-                plt.xlabel('Dimension 1')
-                plt.ylabel('Dimension 2')
-                plt.xlim(-5, 5)
-                plt.ylim(-5, 5)
-                plt.savefig('plot_frame.png')
-                plt.close()
-                plot_image = cv2.imread('plot_frame.png')
-                os.remove('plot_frame.png')
-            # 필요하다면 plot_image의 크기를 조정
-            plot_image_resized = cv2.resize(plot_image, (frame.shape[1], frame.shape[0]))
-
-            # 프레임과 플롯 이미지를 수평으로 결합
-            combined_frame = np.hstack((frame, plot_image_resized))
-            font = cv2.FONT_HERSHEY_SIMPLEX
-            org = (50, 50)
-            fontScale = 1
-            colors = (255, 0, 0)
-            thickness = 2
-            cv2.putText(combined_frame, 'OHLoss: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
-            
-            figsize = (frame.shape[1]*2//50, (frame.shape[0])//50)
-            fig, ax = plt.subplots(figsize=figsize)
-            ax.set_ylim(0, 1)
-            ax.set_xlim(0, np_frame.shape[0])
-            ax.plot(all_OHLoss)
-            ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
-            ax.set_xlabel('Time')
-            ax.set_ylabel('OHLoss')
-            ax.set_title('OHLoss Over Time')
-            fig.canvas.draw()
-            
-            plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-            plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-            plt.close(fig)
-            plot_img_resized = cv2.resize(plot_img_np,  (frame.shape[1]*2, frame.shape[0]-50))
-            combined_frame = np.vstack((combined_frame, plot_img_resized))
-            out.write(combined_frame)
-            cv2.imshow('frame', combined_frame)
-            
-            frame_count += 1
-            key = cv2.waitKey(25)
-            if key == ord('q'):
                 break
-        else:
-            break
-    out.release()
-    video_cap.release()
-    cv2.destroyAllWindows()
+        # out.release()
+        video_cap.release()
+        cv2.destroyAllWindows()
 
-# np저장
-np.save("OHLOSS_Fighting003_x264.npy", all_OHLoss)
+        # np저장
+        for i in range(10):
+            np.save(f"OHLoss_np/{video_name}_{i}.npy", globals()['all_OHLoss{}'.format(i)])
+        # np.save(f"OHLoss_np/{video_name}_{i}.npy", all_OHLoss)
