@@ -91,10 +91,10 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     _data = _data.cuda()
     _label = _label.cuda()
     # 데이터 전처리 및 모델 입력 형태로 변환
-    pool = nn.AdaptiveAvgPool1d(512)
-    ulinput_lowres = pool(ulinput)
+    # pool = nn.AdaptiveAvgPool1d(512)
+    # ulinput_lowres = pool(ulinput)
     # 데이터를 GPU로 이동
-    _unlabeled_data = ulinput_lowres.cuda()
+    _unlabeled_data = ulinput.cuda()
     _aug_unlabeled_data = aug_ulinput.cuda()
     
 
