@@ -81,8 +81,6 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     initial_alpha = 0.999
     final_alpha = 0.8
     decay_rate = np.log(final_alpha / initial_alpha) / (num_iters)
-    if index ==16:
-        print('d')
     
     ninput, nlabel = next(normal_loader)
     ainput, alabel = next(abnormal_loader)
