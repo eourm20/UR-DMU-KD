@@ -71,6 +71,20 @@ def consistency_loss(student_output, teacher_output, weight=2.0):
     """
     return weight * F.mse_loss(student_output['frame'], teacher_output['frame'])
 
+# 어둡게 처리하는 함수
+def darken_data(data, factor=0.5):
+    # factor는 0과 1 사이의 값이며, 1에 가까울수록 원본에 가까워집니다.
+    return data * factor
+
+
+def add_noise(data, mean=0.0, std=0.1):
+    """
+    데이터에 Gaussian 노이즈를 추가하는 함수.
+    mean은 노이즈의 평균값, std는 표준편차를 나타냅니다.
+    """
+    noise = torch.randn(data.size()).cuda() * std + mean
+    return data + noise
+
 
 def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_loader, student_optimizer, criterion, task_logger, index, num_iters):
     unsupervised_losses = []
@@ -90,11 +104,19 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     _label = torch.cat((nlabel, alabel), 0)
     _data = _data.cuda()
     _label = _label.cuda()
-    # 데이터 전처리 및 모델 입력 형태로 변환
-    pool = nn.AdaptiveAvgPool1d(512)
-    ulinput_lowres = pool(ulinput)
+    
+    # ----------------- strong augmentation -----------------
+    # # 화질 저하
+    # pool = nn.AdaptiveAvgPool1d(512)
+    # ulinput_lowres = pool(ulinput)
+    # 어둡게 처리
+    ulinput_dark = darken_data(ulinput, factor=0.5)
+    # # 노이즈 추가
+    # ulinput_noisy = add_noise(ulinput)
+    
+    # --------------------------------------------------------
     # 데이터를 GPU로 이동
-    _unlabeled_data = ulinput_lowres.cuda()
+    _unlabeled_data = ulinput_dark.cuda()
     _aug_unlabeled_data = aug_ulinput.cuda()
     
 
