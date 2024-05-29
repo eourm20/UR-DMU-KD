@@ -70,7 +70,7 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU", task_name="KD75", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU", task_name="KD25 res", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     
     student_net = Student_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_KD75_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_KD25_res_best_record_{}.txt".format(config.seed)))
 
                 torch.save(student_net.state_dict(), os.path.join(args.model_path, \
                     args.model_file.split('<')[0]+"{}.pkl".format(config.seed)))
