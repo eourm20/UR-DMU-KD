@@ -15,7 +15,11 @@ def parse_args():
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--num_segments', type = int, default = 32)
     parser.add_argument('--seed', type = int, default = 2022, help = 'random seed (-1 for no manual seed)')
+<<<<<<< HEAD
     parser.add_argument('--model_file', type = str, default = "trans_KD50_noise_{}.pkl".format(seed), help = 'the path of pre-trained model file')
+=======
+    parser.add_argument('--model_file', type = str, default = "trans_KD50_dark_{}.pkl".format(seed), help = 'the path of pre-trained model file')
+>>>>>>> 958ac30 (50 dark)
     parser.add_argument('--debug', action = 'store_true')
 
     return init_args(parser.parse_args())
