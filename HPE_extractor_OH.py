@@ -152,11 +152,11 @@ def cluster_keypoints_with_loss(keypoints):
     centers = kmeans.cluster_centers_
     
     # 클러스터링 결과 시각화
-    # colors = plot_clusters(keypoints_2d, labels, centers)
+    colors = plot_clusters(keypoints_2d, labels, centers)
     
     if optimal_clusters == 1:
-        # return 0, colors, labels
-        return 0
+        return 0, colors, labels
+        # return 0
     
     cluster_counts = np.bincount(labels)
     
@@ -190,8 +190,8 @@ def cluster_keypoints_with_loss(keypoints):
         final_loss += np.linalg.norm(center - centers[abnormal_cluster])
     
     # 평균 로스 반환
-    # return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
-    return final_loss*(np.max(cluster_counts)) / len(centers)
+    return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
+    # return final_loss*(np.max(cluster_counts)) / len(centers)
     
     # # Dunn 지수 계산
     # dunn = dunn_index(keypoints_2d, labels, centers)
@@ -254,7 +254,11 @@ class Detectron2Pose:
                         # 각 keypoint 사이의 최대 거리를 계산
                         max_distance = torch.max(torch.cdist(relative_keypoints, relative_keypoints, p=2))
                         normalized_keypoints = relative_keypoints / max_distance  # 모든 위치값을 최대 거리로 나눔
-                        
+                        # 양옆 골반의 차이값 추가
+                        left_distance = normalized_keypoints[0]-normalized_keypoints[6]
+                        right_distance = normalized_keypoints[1]-normalized_keypoints[7]
+                        # 총 데이터 포인트
+                        normalized_keypoints = torch.cat([relative_keypoints, left_distance, right_distance], dim=0)
                         vis_person.append(keypoints_xy)
                         filtered_person.append(normalized_keypoints)
                     if len(filtered_person) <= 1:

@@ -10,16 +10,24 @@ from detectron2.engine import DefaultPredictor
 from sklearn.decomposition import PCA
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from scipy.spatial.distance import euclidean
+from detectron2.utils.visualizer import Visualizer
+from detectron2.data import MetadataCatalog
+
 from tqdm import tqdm
 import torch
+import argparse
+from PIL import Image
+from torch.autograd import Variable
 import numpy as np
-import warnings
-warnings.filterwarnings("ignore")
-import multiprocessing as mp
-from multiprocessing import Pool, cpu_count
+from feature_extract.i3dpt import I3D
+import math
 from scipy.optimize import linear_sum_assignment
 
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def filter_matches_by_shoulder_distance(matches, prev_keypoints, curr_keypoints, threshold=7):
     filtered_matches = []
@@ -85,22 +93,22 @@ def flow_keypoints_with_loss(previous_keypoints, curr_keypoints):
     TFLoss_= float(torch.mean(torch.stack(TFLoss_list)))
     colors = plt.cm.rainbow(np.linspace(0, 1, max(len(row_ind), len(col_ind))))
     
-    # for i in range(len(row_ind)):
-    #     point = pre_keypoints_2d[i]
-    #     plt.scatter(point[0], point[1], color=colors[i], label=f'pre person {i+1}')
+    for i in range(len(row_ind)):
+        point = pre_keypoints_2d[i]
+        plt.scatter(point[0], point[1], color=colors[i], label=f'pre person {i+1}')
     
-    # for i in range(len(col_ind)):
-    #     point = curr_keypoints_2d[i]
-    #     plt.scatter(point[0], point[1], color=colors[i], label=f'curr person {i+1}')
+    for i in range(len(col_ind)):
+        point = curr_keypoints_2d[i]
+        plt.scatter(point[0], point[1], color=colors[i], label=f'curr person {i+1}')
 
-    # plt.title('Flow Keypoints')
-    # plt.xlabel('Dimension 1')
-    # plt.ylabel('Dimension 2')
-    # plt.legend()
-    # plt.savefig('plot_frame.png')
-    # plt.close()
+    plt.title('Flow Keypoints')
+    plt.xlabel('Dimension 1')
+    plt.ylabel('Dimension 2')
+    plt.legend()
+    plt.savefig('plot_frame.png')
+    plt.close()
     
-    return TFLoss_, colors, (row_ind, col_ind)
+    return TFLoss_ * weight, colors, (row_ind, col_ind)
     
     
 
@@ -223,105 +231,139 @@ def oversample_data_single_img(data):
 
     return [data_3, data_f_3]
 
-def process_video(video):
+if __name__ == '__main__':
     pose_model = Detectron2Pose()
-    video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
-    video_cap = cv2.VideoCapture(video)
+    
+    video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4')
+    # video_cap = cv2.VideoCapture('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test/Testing_Normal_Videos_Anomaly/Normal_Videos_883_x264.mp4')
+    # video_cap = cv2.VideoCapture(video_cap)
     if not video_cap.isOpened():
         print("Error opening video file")
-        return
 
-    total_frame = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    fps = video_cap.get(cv2.CAP_PROP_FPS)
+    total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    print("total frame:", total_frame)
+    np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Fighting/Fighting033_x264.npy")
+    # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Testing_Normal_Videos_Anomaly/Normal_Videos_883_x264.npy")
+    # np_frame = np.load("/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/Shooting/Shooting022_x264.npy")
+
+    print("np_frame shape:", np_frame.shape)
     weight = 0.01
-
-    # Initialize loss lists
-    all_OHLoss = [[] for _ in range(2)]
-    OHLoss = [[] for _ in range(2)]
-    frame_count = 0
+    abnormals = [570, 840]
+    # abnormals = [0, 0]
+    # abnormals = [2850, 3300]
+    
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fps = video_cap.get(cv2.CAP_PROP_FPS)
+    frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
+    out = cv2.VideoWriter(f'ohloss_vis/Fighting033_TF.mp4', fourcc, fps, (width, height))
     all_TFLoss = []
     frame_count = 0
     TFLoss = 0.0
     previous_keypoints = None
-    
     while video_cap.isOpened():
         ret, frame = video_cap.read()
         if ret:
+            # if frame_count % frame_interval == 0:
             if frame_count % 16 ==0 and frame_count != 0:
-                data = load_frame_cv2(frame)
-                oversampled_data = oversample_data_single_img(data)
-                for i in range(len(oversampled_data)):
-                    crop_frame = oversampled_data[i][0][0]
-                    if previous_keypoints is None:
-                        TFLoss = TFLoss * weight
-                        all_TFLoss.append(TFLoss)
-                        # print("TFLoss:", all_TFLoss[-1])
-                        previous_keypoints, previous_vis_keypoints = pose_model.get_pose(crop_frame)
-                    else:
-                        curr_keypoints, curr_vis_keypoints = pose_model.get_pose(crop_frame)
-                        if len(curr_keypoints) == 0:
-                            TFLoss = 0.0
-                            TFLoss = TFLoss * weight
-                            all_TFLoss.append(TFLoss)
-                            # print("TFLoss:", all_TFLoss[-1])
-                            previous_keypoints = curr_keypoints
-                            # previous_vis_keypoints = curr_vis_keypoints
-                            continue
-                        TFLoss, colors, matching_ind = flow_keypoints_with_loss(previous_keypoints, curr_keypoints)
-                        TFLoss = TFLoss * weight
-                        all_TFLoss.append(TFLoss)
-                        # if colors is not None:
-                        #     colors = convert_to_bgr(colors)
-                        #     #index matching
-                        #     for i in range(len(matching_ind[0])):
-                        #         ind = matching_ind[0][i]
-                        #         person = previous_vis_keypoints[ind]
-                        #         for kp in person:
-                        #             cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, colors[i], -1)
-                        #     for i in range(len(matching_ind[1])):
-                        #         ind = matching_ind[1][i]
-                        #         person = curr_vis_keypoints[ind]
-                        #         for kp in person:
-                        #             cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, colors[i], -1)
-                        # print("TFLoss:", all_TFLoss[-1])
-                        previous_keypoints = curr_keypoints
-                        # previous_vis_keypoints = curr_vis_keypoints
+                if previous_keypoints is None:
+                    all_TFLoss.append(TFLoss)
+                    print("TFLoss:", all_TFLoss[-1])
+                    previous_keypoints, previous_vis_keypoints = pose_model.get_pose(frame)
+                else:
+                    curr_keypoints, curr_vis_keypoints = pose_model.get_pose(frame)
+                    TFLoss, colors, matching_ind = flow_keypoints_with_loss(previous_keypoints, curr_keypoints)
+                    all_TFLoss.append(TFLoss)
+                    if colors is not None:
+                        colors = convert_to_bgr(colors)
+                        #index matching
+                        for i in range(len(matching_ind[0])):
+                            ind = matching_ind[0][i]
+                            person = previous_vis_keypoints[ind]
+                            for kp in person:
+                                cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, colors[i], -1)
+                        for i in range(len(matching_ind[1])):
+                            ind = matching_ind[1][i]
+                            person = curr_vis_keypoints[ind]
+                            for kp in person:
+                                cv2.circle(frame, (int(kp[0]), int(kp[1])), 3, colors[i], -1)
+                    print("TFLoss:", all_TFLoss[-1])
+                    previous_keypoints = curr_keypoints
+                    previous_vis_keypoints = curr_vis_keypoints
+            # else:
+                # TFLoss = 0
+                # previous_keypoints = curr_keypoints
 
+                
+            # if len(keypoints) > 1:
+            #     person_num = len(keypoints)
+            #     # 랜덤 색상 생성
+            #     ohloss, colors, labels = flow_keypoints_with_loss(keypoints)
+            #     # ohloss = cluster_keypoints_with_loss(keypoints)
+            #     person_colors = [colors[label] for label in labels]
+            #     person_colors = convert_to_bgr(person_colors)
+                # ohloss = ohloss * weight
+                # OHLoss.append(ohloss)
+                
+            
+                
+                if frame_count == abnormals[0]:
+                    print("ABNORMAL FRAME START")
+                if frame_count == abnormals[1]:
+                    print("ABNORMAL FRAME END")
+                fps_OHLoss = 0
+
+                if os.path.exists('plot_frame.png'):
+                    plot_image = cv2.imread('plot_frame.png')
+                    os.remove('plot_frame.png')
+                else:
+                    plt.title('Clustered Keypoints')
+                    plt.xlabel('Dimension 1')
+                    plt.ylabel('Dimension 2')
+                    plt.xlim(-5, 5)
+                    plt.ylim(-5, 5)
+                    plt.savefig('plot_frame.png')
+                    plt.close()
+                    plot_image = cv2.imread('plot_frame.png')
+                    os.remove('plot_frame.png')
+                # 필요하다면 plot_image의 크기를 조정
+                plot_image_resized = cv2.resize(plot_image, (frame.shape[1], frame.shape[0]))
+
+                # 프레임과 플롯 이미지를 수평으로 결합
+                combined_frame = np.hstack((frame, plot_image_resized))
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                org = (50, 50)
+                fontScale = 1
+                colors = (255, 0, 0)
+                thickness = 2
+                cv2.putText(combined_frame, 'TFLoss: {:.2f}'.format(all_TFLoss[-1]), org, font, fontScale, colors, thickness, cv2.LINE_AA)
+                
+                figsize = (frame.shape[1]*2//50, (frame.shape[0])//50)
+                fig, ax = plt.subplots(figsize=figsize)
+                ax.set_ylim(0, 1)
+                ax.set_xlim(0, np_frame.shape[0])
+                ax.plot(all_TFLoss)
+                ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
+                ax.set_xlabel('Time')
+                ax.set_ylabel('TFLoss')
+                ax.set_title('TFLoss Over Time')
+                fig.canvas.draw()
+                
+                plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+                plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+                plt.close(fig)
+                plot_img_resized = cv2.resize(plot_img_np,  (frame.shape[1]*2, frame.shape[0]-50))
+                combined_frame = np.vstack((combined_frame, plot_img_resized))
+                out.write(combined_frame)
+                cv2.imshow('frame', combined_frame)
+                
             frame_count += 1
             key = cv2.waitKey(25)
             if key == ord('q'):
                 break
         else:
             break
-
+    out.release()
     video_cap.release()
     cv2.destroyAllWindows()
-    print(f"{video_name} processing complete")
-    # Save numpy arrays
-    for j in range(2):
-        if os.path.exists(f"TFLoss_np/{video_name.split('/')[0]}") == False:
-            os.makedirs(f"TFLoss_np/{video_name.split('/')[0]}")
-        np.save(f"TFLoss_np/{video_name}_{j}.npy", all_OHLoss[j])
-        print(f"save: TFLoss_np/{video_name}_{j}.npy")
-if __name__ == '__main__':
-    # 특정 GPU만 사용하도록 환경 변수 설정
-    mp.set_start_method('spawn')
-    s = open('list/ucf-train.list', 'r')
-    split_file = []
-    for line in s:
-        line = line.strip()
-        split_file.append(line)
-    split_file.reverse()
-    vid_list = []
-    mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
-    for line in split_file:
-        if os.path.exists(f"TFLoss_np/{line}_x264_0.npy"):
-            print(f"{line} already processed. Skipping...")
-            continue
-        if "Testing" in line.split()[0]:
-            mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
-        video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
-        vid_list.append(video_path)
-
-    # Use multiprocessing to process videos in parallel
-    with Pool(processes=1) as p:
-        list(tqdm(p.imap(process_video, vid_list), total=len(vid_list)))
