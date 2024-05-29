@@ -82,7 +82,7 @@ def add_noise(data, mean=0.0, std=0.1):
     데이터에 Gaussian 노이즈를 추가하는 함수.
     mean은 노이즈의 평균값, std는 표준편차를 나타냅니다.
     """
-    noise = torch.randn(data.size()).cuda() * std + mean
+    noise = torch.randn(data.size()).to(data.device) * std + mean
     return data + noise
 
 
@@ -110,13 +110,13 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # pool = nn.AdaptiveAvgPool1d(512)
     # ulinput_lowres = pool(ulinput)
     # 어둡게 처리
-    ulinput_dark = darken_data(ulinput, factor=0.5)
+    # ulinput_dark = darken_data(ulinput, factor=0.5)
     # # 노이즈 추가
-    # ulinput_noisy = add_noise(ulinput)
+    ulinput_noisy = add_noise(ulinput)
     
     # --------------------------------------------------------
     # 데이터를 GPU로 이동
-    _unlabeled_data = ulinput_dark.cuda()
+    _unlabeled_data = ulinput_noisy.cuda()
     _aug_unlabeled_data = aug_ulinput.cuda()
     
 
