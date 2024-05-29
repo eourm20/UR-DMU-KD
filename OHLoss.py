@@ -267,7 +267,7 @@ if __name__ == '__main__':
     vid_list = []
     mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
     for line in split_file:
-        if os.path.exists(f"OHLoss_np/{line}_x264_0.npy"):
+        if os.path.exists(f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np/{line}_x264_0.npy"):
             print(f"{line} already processed. Skipping...")
             continue
         if "Testing" in line.split()[0]:
