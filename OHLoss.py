@@ -135,7 +135,7 @@ class Detectron2Pose:
         vis_person = []
         filtered_person = []
         if "instances" in outputs:
-            instances = outputs["instances"].to(torch.device('cuda'))
+            instances = outputs["instances"].to(torch.device('cpu'))
             if instances.has("pred_keypoints"):
                 keypoints_predictions = instances.pred_keypoints
                 # [x,y,신뢰도]
@@ -198,11 +198,13 @@ def oversample_data_single_img(data):
     data_f_4 = np.array(data_flip[:, :, -224:, :224, :])
     data_f_5 = np.array(data_flip[:, :, -224:, -224:, :])
 
-    return [data_1, data_2, data_3, data_4, data_5, data_f_1, data_f_2, data_f_3, data_f_4, data_f_5]
+    # return [data_1, data_2, data_3, data_4, data_5, data_f_1, data_f_2, data_f_3, data_f_4, data_f_5]
+    return [data_3, data_f_3]
+
 
 def process_video(video):
     pose_model = Detectron2Pose()
-    video_name = video.split('/')[-2]+'/'+video.split('/')[-1]
+    video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     video_cap = cv2.VideoCapture(video)
     if not video_cap.isOpened():
         print("Error opening video file")
@@ -212,8 +214,8 @@ def process_video(video):
     weight = 0.2
 
     # Initialize loss lists
-    all_OHLoss = [[] for _ in range(10)]
-    OHLoss = [[] for _ in range(10)]
+    all_OHLoss = [[] for _ in range(2)]
+    OHLoss = [[] for _ in range(2)]
     frame_count = 0
 
     while video_cap.isOpened():
@@ -229,6 +231,7 @@ def process_video(video):
                     ohloss = ohloss * weight
                 else:
                     ohloss = 0 * weight
+                # print('OHLoss:', ohloss)
                 OHLoss[i].append(ohloss)
 
                 if frame_count % 16 == 0 and frame_count != 0:
@@ -245,11 +248,13 @@ def process_video(video):
 
     video_cap.release()
     cv2.destroyAllWindows()
-
+    print(f"{video_name} processing complete")
     # Save numpy arrays
-    for i in range(10):
-        np.save(f"OHLoss_np/{video_name}_{i}.npy", all_OHLoss[i])
-
+    for j in range(2):
+        if os.path.exists(f"OHLoss_np/{video_name.split('/')[0]}") == False:
+            os.makedirs(f"OHLoss_np/{video_name.split('/')[0]}")
+        np.save(f"OHLoss_np/{video_name}_{j}.npy", all_OHLoss[j])
+        print(f"save: OHLoss_np/{video_name}_{j}.npy")
 if __name__ == '__main__':
     # 특정 GPU만 사용하도록 환경 변수 설정
     mp.set_start_method('spawn')
@@ -263,5 +268,5 @@ if __name__ == '__main__':
         vid_list.append(video_path)
 
     # Use multiprocessing to process videos in parallel
-    with Pool(processes=20) as p:
+    with Pool(processes=15) as p:
         list(tqdm(p.imap(process_video, vid_list), total=len(vid_list)))
