@@ -93,20 +93,20 @@ def flow_keypoints_with_loss(previous_keypoints, curr_keypoints):
     TFLoss_= float(torch.mean(torch.stack(TFLoss_list)))
     colors = plt.cm.rainbow(np.linspace(0, 1, max(len(row_ind), len(col_ind))))
     
-    for i in range(len(row_ind)):
-        point = pre_keypoints_2d[i]
-        plt.scatter(point[0], point[1], color=colors[i], label=f'pre person {i+1}')
+    # for i in range(len(row_ind)):
+    #     point = pre_keypoints_2d[i]
+    #     plt.scatter(point[0], point[1], color=colors[i], label=f'pre person {i+1}')
     
-    for i in range(len(col_ind)):
-        point = curr_keypoints_2d[i]
-        plt.scatter(point[0], point[1], color=colors[i], label=f'curr person {i+1}')
+    # for i in range(len(col_ind)):
+    #     point = curr_keypoints_2d[i]
+    #     plt.scatter(point[0], point[1], color=colors[i], label=f'curr person {i+1}')
 
-    plt.title('Flow Keypoints')
-    plt.xlabel('Dimension 1')
-    plt.ylabel('Dimension 2')
-    plt.legend()
-    plt.savefig('plot_frame.png')
-    plt.close()
+    # plt.title('Flow Keypoints')
+    # plt.xlabel('Dimension 1')
+    # plt.ylabel('Dimension 2')
+    # plt.legend()
+    # plt.savefig('plot_frame.png')
+    # plt.close()
     
     return TFLoss_ * weight, colors, (row_ind, col_ind)
     
