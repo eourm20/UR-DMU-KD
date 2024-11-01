@@ -19,7 +19,8 @@ matplotlib.use('Agg')
 
 # ROC 커브와 PR 커브를 그리기 위한 코드
 def plot_curve(fpr, tpr, roc_auc, recall, precision, pr_auc, epoch):
-    
+    if os.path.exists(args.log_path+'curve_plot/') == False:
+        os.makedirs(args.log_path+'curve_plot/')
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     lw = 2
     ax1.plot(fpr, tpr, color='darkorange',
@@ -70,7 +71,7 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU", task_name="more train Teacher", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU-HPE", task_name="Teacher", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     
     net = WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
@@ -124,10 +125,11 @@ if __name__ == "__main__":
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_Teacher_More_train_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_Teacher_best_record_{}.txt".format(config.seed)))
 
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
                     args.model_file.split('<')[0]+"{}.pkl".format(config.seed)))
+                plot_curve(test_info["fpr"], test_info["tpr"], test_info["auc"][-1], test_info["recall"], test_info["precision"], test_info["ap"][-1], step//10)
             if step == config.num_iters:
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
                     args.model_file.split('<')[0]+"{}.pkl".format(step)))
