@@ -13,21 +13,32 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/pretrain/ucf-label-i3d_svr3_{}.list'.format(self.mode))
+        split_path = os.path.join('list','KD/pretrain/ucf-label-i3d_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
+
+        # self.OHloss_list = []
+        # self.TFloss_list = []
         for line in split_file:
             self.vid_list.append(line.split())
+            # self.OHloss_list.append(line.split().replace(f'I3D_feature/{self.mode}/RGB','OHLoss_np3'))
+            # self.TFloss_list.append(line.split().replace(f'I3D_feature/{self.mode}/RGB','TFLoss_np3'))
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
                 self.vid_list = self.vid_list[411:]
+                # self.OHloss_list = self.OHloss_list[411:]
+                # self.TFloss_list = self.TFloss_list[411:]
             elif is_normal is False:
                 self.vid_list = self.vid_list[:411]
+                # self.OHloss_list = self.OHloss_list[:411]
+                # self.TFloss_list = self.TFloss_list[:411]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal=[True/False]")
                 self.vid_list=[]
+                # self.OHloss_list=[]
+                # self.TFloss_list=[]
     def __len__(self):
         return len(self.vid_list)
 
@@ -41,10 +52,14 @@ class UCF_crime(data.DataLoader):
             return data,label
 
     def get_data(self, index):
-        vid_info = self.vid_list[index][0]  
+        vid_info = self.vid_list[index][0]
+        # ohloss_info = self.OHloss_list[index][0]
+        # tfloss_info = self.TFloss_list[index][0]
         name = vid_info.split("/")[-1].split("_x264")[0]
-        video_feature = np.load(vid_info).astype(np.float32)   
-
+        video_feature = np.load(vid_info).astype(np.float32)
+        # ohloss = np.load(ohloss_info).astype(np.float32)
+        # tfloss = np.load(tfloss_info).astype(np.float32)
+        
         if "Normal" in vid_info.split("/")[-1]:
             label = 0
         else:

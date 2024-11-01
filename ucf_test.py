@@ -46,7 +46,7 @@ def test(net, config, test_loader, test_info, step, model_file = None):
             else:
                 frame_predict = np.concatenate([frame_predict, fpre_])  
             # temp_predict = torch.zeros((0)).cuda()
-   
+    
         fpr,tpr,_ = roc_curve(frame_gt, frame_predict)
         auc_score = auc(fpr, tpr)
     

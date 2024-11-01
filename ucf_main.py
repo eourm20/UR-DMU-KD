@@ -125,12 +125,14 @@ if __name__ == "__main__":
             if test_info["auc"][-1] > best_auc:
                 best_auc = test_info["auc"][-1]
                 utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_Teacher_best_record_{}.txt".format(config.seed)))
+                    os.path.join(config.output_path, "ucf_Teacher_best_record.txt"))
 
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file.split('<')[0]+"{}.pkl".format(config.seed)))
-                plot_curve(test_info["fpr"], test_info["tpr"], test_info["auc"][-1], test_info["recall"], test_info["precision"], test_info["ap"][-1], step//10)
+                    args.model_file.split('<')[0]+"_best.pkl"))
             if step == config.num_iters:
+                utils.save_best_record(test_info, 
+                    os.path.join(config.output_path, "ucf_Teacher_last_record_{}.txt".format(step)))
+
                 torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file.split('<')[0]+"{}.pkl".format(step)))
+                    args.model_file.split('<')[0]+"{}_last.pkl".format(step)))
 
