@@ -35,7 +35,7 @@ def filter_matches_by_shoulder_distance(matches, prev_keypoints, curr_keypoints,
         # 위치 차이가 임계값보다 작은 경우에만 결과 목록에 추가합니다.
         if distance <= threshold:
             filtered_matches.append(match)
-        print("distance:", distance)
+        # print("distance:", distance)
     
     return filtered_matches
 
@@ -57,6 +57,8 @@ def plot_flow(keypoints_flattened):
     return colors
     
 def flow_keypoints_with_loss(previous_keypoints, curr_keypoints):
+    if len(previous_keypoints) == 0 or len(curr_keypoints) == 0:
+        return 0.0, None, None
     curr_keypoints_flattened = curr_keypoints.reshape(curr_keypoints.shape[0], -1)
     pre_keypoints_flattened = previous_keypoints.reshape(previous_keypoints.shape[0], -1)
     all_keypoints = np.vstack((pre_keypoints_flattened, curr_keypoints_flattened))
@@ -227,6 +229,7 @@ def process_video(video):
     pose_model = Detectron2Pose()
     video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     video_cap = cv2.VideoCapture(video)
+    
     if not video_cap.isOpened():
         print("Error opening video file")
         return
@@ -235,8 +238,8 @@ def process_video(video):
     weight = 0.01
 
     # Initialize loss lists
-    all_OHLoss = [[] for _ in range(2)]
-    OHLoss = [[] for _ in range(2)]
+    # all_OHLoss = [[] for _ in range(2)]
+    # OHLoss = [[] for _ in range(2)]
     frame_count = 0
     all_TFLoss = []
     frame_count = 0
@@ -298,10 +301,11 @@ def process_video(video):
     print(f"{video_name} processing complete")
     # Save numpy arrays
     for j in range(2):
-        if os.path.exists(f"TFLoss_np/{video_name.split('/')[0]}") == False:
-            os.makedirs(f"TFLoss_np/{video_name.split('/')[0]}")
-        np.save(f"TFLoss_np/{video_name}_{j}.npy", all_OHLoss[j])
-        print(f"save: TFLoss_np/{video_name}_{j}.npy")
+        if os.path.exists(f"/home/sb-oh/Nas-subin/SB-OH/data/HPE/TFLoss_np/{video_name.split('/')[0]}") == False:
+            os.makedirs(f"/home/sb-oh/Nas-subin/SB-OH/data/HPE/TFLoss_np/{video_name.split('/')[0]}")
+        np.save(f"/home/sb-oh/Nas-subin/SB-OH/data/HPE/TFLoss_np/{video_name}_{j}.npy", all_TFLoss[j])
+        print(f"save: /home/sb-oh/Nas-subin/SB-OH/data/HPE/TFLoss_np/{video_name}_{j}.npy")
+
 if __name__ == '__main__':
     # 특정 GPU만 사용하도록 환경 변수 설정
     mp.set_start_method('spawn')
@@ -312,16 +316,16 @@ if __name__ == '__main__':
         split_file.append(line)
     split_file.reverse()
     vid_list = []
-    mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
+    mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
     for line in split_file:
-        if os.path.exists(f"TFLoss_np/{line}_x264_0.npy"):
+        if os.path.exists(f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/TFLoss_np/{line}_x264_0.npy"):
             print(f"{line} already processed. Skipping...")
             continue
         if "Testing" in line.split()[0]:
-            mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
+            mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
         video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
         vid_list.append(video_path)
 
     # Use multiprocessing to process videos in parallel
-    with Pool(processes=1) as p:
+    with Pool(processes=15) as p:
         list(tqdm(p.imap(process_video, vid_list), total=len(vid_list)))

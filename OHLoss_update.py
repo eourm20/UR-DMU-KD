@@ -350,10 +350,11 @@ def convert_to_bgr(person_colors):
     return bgr_colors
 
 def process_video(video, crop):
-    # print(f"Processing {video}")
     pose_model = Detectron2Pose()
     video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
-    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/TFLoss_np3/{video_name.split('/')[0]}/"
+    
+    # 파일 이름에 video_name이 포함되어 있는지 확인
+    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np3/{video_name.split('/')[0]}/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     # name이 포함된 파일 리스트
@@ -372,22 +373,21 @@ def process_video(video, crop):
             if '__' in crop_name:
                 if int(crop_name.split('__')[-1].split('.')[0]) == 5:
                     return
-
+    
     video_cap = cv2.VideoCapture(video)
     if not video_cap.isOpened():
         print("Error opening video file")
-        print(video)
         return
-    
     '''
     # 시각화
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
     print("total frame:", total_frame)
-    np_frame = np.load(f"/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/{video_name}.npy")
+    np_frame = np.load(f"/home/sb-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/{video_name}.npy")
 
     print("np_frame shape:", np_frame.shape)
-    annotation_abnormal = open("/home/subin-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
+    
+    annotation_abnormal = open(f"/home/sb-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
     if 'Normal' not in video_name:
         for line in annotation_abnormal:
             if video_name in line:
@@ -491,7 +491,6 @@ def process_video(video, crop):
                 plt.close(fig)
                 plot_img_resized = cv2.resize(plot_img_np,  (crop_frame.shape[1]*2, crop_frame.shape[0]-50))
                 combined_frame = np.vstack((combined_frame, plot_img_resized))
-                # print(combined_frame.shape)
                 out.write(combined_frame)
                 cv2.imshow(f'Frame - Crop {crop}', combined_frame)
                 
@@ -600,5 +599,3 @@ if __name__ == '__main__':
         video = vid_list[q]
         print(q,"/",len(vid_list),end="\r")
         process_video(video, crop)   
-        
-    # process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', crop)
