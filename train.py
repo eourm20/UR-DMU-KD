@@ -66,6 +66,8 @@ def train(net, normal_loader, abnormal_loader, optimizer, criterion, task_logger
     optimizer.zero_grad()
     cost.backward()
     optimizer.step()
-    for key in loss.keys():     
-        task_logger.report_scalar(title = 'Train Loss', series = 'Total loss'.format(key), value = loss[key].item(), iteration = index)
+    if task_logger is not None:
+        task_logger.report_scalar(title = 'Train Loss', series = 'total_loss', value = loss['total_loss'].item(), iteration = index)
+        # for key in loss.keys():     
+        #     task_logger.report_scalar(title = 'Train Loss', series = f'{key}', value = loss[key].item(), iteration = index)
         # wind.plot_lines(key, loss[key].item())
