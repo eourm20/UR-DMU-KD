@@ -174,6 +174,25 @@ class Teacher_WSAD(Module):
         else:
             b, t, d = x.size()
             n = 1
+        
+        # 입력 차원을 확인합니다.
+        input_dim = x.shape[-1]  # x는 [batch_size, seq_len, features] 형태로 가정합니다.
+
+        # 입력 차원이 모델이 기대하는 차원과 다른 경우 preprocess 레이어를 동적으로 생성 및 적용합니다.
+        if input_dim != self.input_size:
+            # 동적으로 preprocess 레이어 생성
+            if self.preprocess is None:
+                self.preprocess = nn.Linear(input_dim, self.input_size)
+                # preprocess 레이어 가중치 초기화
+                torch.nn.init.xavier_uniform_(self.preprocess.weight)
+                self.preprocess.bias.data.fill_(0)
+                # cuda로 이동
+                self.preprocess = self.preprocess.cuda()
+                
+            x = self.preprocess(x)
+        else:
+            x = x
+ 
         x = self.embedding(x)
         x = self.selfatt(x)
         

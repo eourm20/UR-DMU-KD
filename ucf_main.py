@@ -77,7 +77,7 @@ if __name__ == "__main__":
     student_net = student_net.cuda()
     
     teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher__best.pkl', map_location = 'cuda'))
+    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher2000__best.pkl', map_location = 'cuda'))
     teacher_net = teacher_net.cuda()
     
     normal_train_loader = data.DataLoader(
