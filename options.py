@@ -17,7 +17,7 @@ def parse_args():
     parser.add_argument('--seed', type = int, default = 1103, help = 'random seed (-1 for no manual seed)')
     parser.add_argument('--model_file', type = str, default = "Teacher(HP)_{}.pkl".format(seed), help = 'the path of pre-trained model file')
     parser.add_argument('--debug', action = 'store_true')
-    parser.add_argument('--HPLoss_w', type = float, default = 0.01, help = 'weight of HP Loss')
+    parser.add_argument('--HPLoss_w', type = float, default = 0.1, help = 'weight of HP Loss')
 
     return init_args(parser.parse_args())
 
