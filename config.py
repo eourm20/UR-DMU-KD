@@ -13,6 +13,7 @@ class Config(object):
         self.model_file = args.model_file
         self.seed = args.seed
         self.num_segments = args.num_segments
+        self.HPLoss_w = args.HPLoss_w
 
             
 if __name__ == "__main__":

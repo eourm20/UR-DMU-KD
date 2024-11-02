@@ -51,7 +51,7 @@ class WSAD(Module):
         kl_loss = torch.mean(-0.5 * torch.sum(1 + var - mu ** 2 - var.exp(), dim = 1))
         return kl_loss
 
-    def forward(self, x):
+    def forward(self, x, oh_att, tf_att):
         if len(x.size()) == 4:
             b, n, t, d = x.size()
             x = x.reshape(b * n, t, d)
@@ -97,7 +97,11 @@ class WSAD(Module):
             distance = torch.relu(100 - torch.norm(negative_ax_new, p=2, dim=-1) + torch.norm(anchor_nx_new, p=2, dim=-1)).mean()
             x = torch.cat((x, (torch.cat([N_aug_new + A_Naug, A_aug_new + N_Aaug], dim=0))), dim=-1)
             pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
-    
+
+            # HPLoss를 0~1로 정규화
+            oh_att = torch.sigmoid(oh_att)
+            tf_att = torch.sigmoid(tf_att)
+        
             return {
                     "frame": pre_att,
                     'triplet_margin': triplet_margin_loss,
@@ -106,7 +110,10 @@ class WSAD(Module):
                     'A_att': A_att.reshape((b//2, n, -1)).mean(1),
                     "N_att": N_att.reshape((b//2, n, -1)).mean(1),
                     "A_Natt": A_Natt.reshape((b//2, n, -1)).mean(1),
-                    "N_Aatt": N_Aatt.reshape((b//2, n, -1)).mean(1)
+                    "N_Aatt": N_Aatt.reshape((b//2, n, -1)).mean(1),
+                    # HPLoss 추가
+                    "oh_att": oh_att,
+                    "tf_att": tf_att
                 }
         else:           
             _, A_aug = self.Amemory(x)

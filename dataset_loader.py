@@ -17,48 +17,55 @@ class UCF_crime(data.DataLoader):
         split_file = open(split_path, 'r')
         self.vid_list = []
 
-        self.OHloss_list = []
-        self.TFloss_list = []
+        self.oh_att_list = []
+        self.tf_att_list = []
         for line in split_file:
             self.vid_list.append(line.split())
-            self.OHloss_list.append(line.split().replace(f'I3D_feature/{self.mode}/RGB','OHLoss_np3'))
-            self.TFloss_list.append(line.split().replace(f'I3D_feature/{self.mode}/RGB','TFLoss_np3'))
+            self.oh_att_list.append([line.split()[0].replace(f'I3D_feature/{self.mode}/RGB','HPE/OHLoss_np3')])
+            self.tf_att_list.append([line.split()[0].replace(f'I3D_feature/{self.mode}/RGB','HPE/TFLoss_np3')])
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
                 self.vid_list = self.vid_list[411:]
-                self.OHloss_list = self.OHloss_list[411:]
-                self.TFloss_list = self.TFloss_list[411:]
+                self.oh_att_list = self.oh_att_list[411:]
+                self.tf_att_list = self.tf_att_list[411:]
             elif is_normal is False:
                 self.vid_list = self.vid_list[:411]
-                self.OHloss_list = self.OHloss_list[:411]
-                self.TFloss_list = self.TFloss_list[:411]
+                self.oh_att_list = self.oh_att_list[:411]
+                self.tf_att_list = self.tf_att_list[:411]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal=[True/False]")
                 self.vid_list=[]
-                self.OHloss_list=[]
-                self.TFloss_list=[]
+                self.oh_att_list=[]
+                self.tf_att_list=[]
     def __len__(self):
         return len(self.vid_list)
 
     def __getitem__(self, index):
         
         if self.mode == "Test":
-            data,label,name = self.get_data(index)
-            return data,label,name
+            data,label,name,oh_att,tf_att = self.get_data(index)
+            return data,label,name,oh_att,tf_att
         else:
-            data,label = self.get_data(index)
-            return data,label
+            data,label,oh_att,tf_att = self.get_data(index)
+            return data,label,oh_att,tf_att
 
     def get_data(self, index):
         vid_info = self.vid_list[index][0]
-        ohloss_info = self.OHloss_list[index][0]
-        tfloss_info = self.TFloss_list[index][0]
+        oh_att_info = self.oh_att_list[index][0]
+        tf_att_info = self.tf_att_list[index][0]
         name = vid_info.split("/")[-1].split("_x264")[0]
         video_feature = np.load(vid_info).astype(np.float32)
-        ohloss = np.load(ohloss_info).astype(np.float32)
-        tfloss = np.load(tfloss_info).astype(np.float32)
+        oh_att = np.load(oh_att_info).astype(np.float32)
+        tf_att = np.load(tf_att_info).astype(np.float32)
+        #ohloss와 tfloss의 길이가 다를 수 있음
+        if len(oh_att) != len(video_feature):
+            # ohloss의 마지막 값으로 채움
+            oh_att = np.concatenate([oh_att, np.repeat(oh_att[-1], len(video_feature) - len(oh_att))])
+        if len(tf_att) != len(video_feature):
+            # tfloss의 마지막 값으로 채움
+            tf_att = np.concatenate([tf_att, np.repeat(tf_att[-1], len(video_feature) - len(tf_att))])
         
         if "Normal" in vid_info.split("/")[-1]:
             label = 0
@@ -66,18 +73,26 @@ class UCF_crime(data.DataLoader):
             label = 1
         if self.mode == "Train":
             new_feat = np.zeros((self.num_segments, video_feature.shape[1])).astype(np.float32)
+            new_oh_att = np.zeros((self.num_segments, )).astype(np.float32)
+            new_tf_att = np.zeros((self.num_segments, )).astype(np.float32)
             r = np.linspace(0, len(video_feature), self.num_segments + 1, dtype = int)
             for i in range(self.num_segments):
                 if r[i] != r[i+1]:
                     new_feat[i,:] = np.mean(video_feature[r[i]:r[i+1],:], 0)
+                    new_oh_att[i] = np.mean(oh_att[r[i]:r[i+1]], 0)
+                    new_tf_att[i] = np.mean(tf_att[r[i]:r[i+1]], 0)
                 else:
                     new_feat[i:i+1,:] = video_feature[r[i]:r[i]+1,:]
+                    new_oh_att[i:i+1] = oh_att[r[i]:r[i]+1]
+                    new_tf_att[i:i+1] = tf_att[r[i]:r[i]+1]
             video_feature = new_feat
+            oh_att = new_oh_att
+            tf_att = new_tf_att
             
         if self.mode == "Test":
-            return video_feature, label, name      
+            return video_feature, label, name, oh_att, tf_att      
         else:
-            return video_feature, label      
+            return video_feature, label, oh_att, tf_att
 
 class XDVideo(data.DataLoader):
     def __init__(self, root_dir, mode, modal, num_segments, len_feature, seed=-1, is_normal=None):

@@ -10,13 +10,14 @@ def parse_args():
     parser.add_argument('--log_path', type = str, default = 'logs/')
     parser.add_argument('--modal', type = str, default = 'rgb',choices = ["rgb,flow,both"])
     parser.add_argument('--model_path', type = str, default = 'models/')
-    parser.add_argument('--lr', type = str, default = '[0.0001]*1000', help = 'learning rates for steps(list form)')
+    parser.add_argument('--lr', type = str, default = '[0.0001]*2000', help = 'learning rates for steps(list form)')
     parser.add_argument('--batch_size', type = int, default = 64)
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--num_segments', type = int, default = 32)
-    parser.add_argument('--seed', type = int, default = 1101, help = 'random seed (-1 for no manual seed)')
-    parser.add_argument('--model_file', type = str, default = "Teacher_{}.pkl".format(seed), help = 'the path of pre-trained model file')
+    parser.add_argument('--seed', type = int, default = 1103, help = 'random seed (-1 for no manual seed)')
+    parser.add_argument('--model_file', type = str, default = "Teacher(HP)_{}.pkl".format(seed), help = 'the path of pre-trained model file')
     parser.add_argument('--debug', action = 'store_true')
+    parser.add_argument('--HPLoss_w', type = float, default = 0.01, help = 'weight of HP Loss')
 
     return init_args(parser.parse_args())
 
