@@ -35,10 +35,13 @@ class AD_Loss(nn.Module):
         anomaly_loss = self.bce(anomaly, _label)
         # print('anomaly_loss:', anomaly_loss)
         # HP Loss 추가
-        oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        # 시그모이드 함수를 통과시켜서 0~1 사이의 값으로 변환
+        oh_att = nn.Sigmoid()(oh_att)
+        oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].mean(-1)
         oh_loss = self.bce(oh, _label)
         # print('oh_loss:', oh_loss)
-        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        tf_att = nn.Sigmoid()(tf_att)
+        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].mean(-1)
         tf_loss = self.bce(tf, _label)
         # print('tf_loss:', tf_loss)
         hp_loss = torch.max(oh_loss, tf_loss)

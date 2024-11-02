@@ -13,7 +13,7 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/pretrain/ucf-label-i3d_{}.list'.format(self.mode))
+        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_svr3_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
 
@@ -26,13 +26,13 @@ class UCF_crime(data.DataLoader):
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
-                self.vid_list = self.vid_list[411:]
-                self.oh_att_list = self.oh_att_list[411:]
-                self.tf_att_list = self.tf_att_list[411:]
+                self.vid_list = self.vid_list[104:]
+                self.oh_att_list = self.oh_att_list[104:]
+                self.tf_att_list = self.tf_att_list[104:]
             elif is_normal is False:
-                self.vid_list = self.vid_list[:411]
-                self.oh_att_list = self.oh_att_list[:411]
-                self.tf_att_list = self.tf_att_list[:411]
+                self.vid_list = self.vid_list[:104]
+                self.oh_att_list = self.oh_att_list[:104]
+                self.tf_att_list = self.tf_att_list[:104]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal=[True/False]")
