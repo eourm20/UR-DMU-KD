@@ -128,10 +128,10 @@ if __name__ == "__main__":
                 os.path.join(config.output_path, "ucf_AllE_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
-        else:
-            best_auc_update += 1
-            if best_auc_update == 20:
-                break
+        # else:
+        #     best_auc_update += 1
+        #     if best_auc_update == 20:
+        #         break
             
         # if step % 10 == 0 and step >= 10:
         #     test(net, config, test_loader, test_info, step)
