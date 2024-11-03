@@ -142,13 +142,15 @@ class Student_WSAD(Module):
             pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
             return {"frame": pre_att}
 
+        
 class Teacher_WSAD(Module):
     def __init__(self, input_size, flag, a_nums, n_nums):
         super().__init__()
         self.flag = flag
         self.a_nums = a_nums
         self.n_nums = n_nums
-
+        self.input_size = input_size
+        
         self.embedding = Temporal(input_size,512)
         self.triplet = nn.TripletMarginLoss(margin=1)
         self.cls_head = ADCLS_head(1024, 1)

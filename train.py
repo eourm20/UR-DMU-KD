@@ -86,15 +86,10 @@ def add_noise(data, mean=0.0, std=0.1):
     return data + noise
 
 
-def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_loader, student_optimizer, criterion, task_logger, index, num_iters):
-    # unsupervised_losses = []
-    
-    
+def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_loader, student_optimizer, criterion, task_logger, index, num_iters, KD_w):
     initial_alpha = 0.999
     final_alpha = 0.8
-    # unsupervised_loss 가중치
-    KD_w = 0.5
-    
+
     decay_rate = np.log(final_alpha / initial_alpha) / (num_iters)
     
     ninput, nlabel = next(normal_loader)
@@ -135,17 +130,13 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # cost.backward()
     # student_optimizer.step()
     
-    if task_logger is not None:
-        task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = supervised_loss.item(), iteration = index)
-
     update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+1, decay_rate)
     
     # ----------------- unsupervised loss -----------------
     with torch.no_grad():  # 교사 모델의 forward pass는 기울기 계산이 필요 없음
         teacher_net.eval()
         teacher_net.flag = "Unlabel_Train"
-        res = teacher_net(_aug_unlabeled_data)  
-        teacher_output = res["frame"]
+        teacher_output = teacher_net(_aug_unlabeled_data)  
     
     # autograd를 활성화하기 위해 student 모델의 forward pass는 torch.no_grad() 바깥에서 수행
     student_net.flag = "Unlabel_Train"
@@ -154,7 +145,6 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # KD loss 계산
     unsupervised_loss = consistency_loss(student_output, teacher_output)
     # unsupervised_losses.append(unsupervised_loss.item())
-    task_logger.report_scalar(title='Unsupervised Loss', series='total_loss', value=unsupervised_loss.item(), iteration=index)
     
     # student_optimizer.zero_grad()
     # unsupervised_loss.backward()
@@ -168,5 +158,7 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # EMA 업데이트
     # update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+1, decay_rate)
             
-    
-    task_logger.report_scalar(title = 'Train Loss', series = 'total_loss', value = total_loss.item(), iteration = index)
+    if task_logger is not None:
+        task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = supervised_loss.item(), iteration = index)
+        task_logger.report_scalar(title='Unsupervised Loss', series='total_loss', value=unsupervised_loss.item(), iteration=index)
+        task_logger.report_scalar(title = 'Train Loss', series = 'total_loss', value = total_loss.item(), iteration = index)
