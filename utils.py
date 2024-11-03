@@ -52,7 +52,7 @@ def save_best_record(test_info, file_path):
     fo.write("Step: {}\n".format(test_info["step"][-1]))
     fo.write("auc: {:.4f}\n".format(test_info["auc"][-1]))
     fo.write("ap: {:.4f}\n".format(test_info["ap"][-1]))
-    fo.write("ac: {:.4f}\n".format(test_info["ac"][-1]))
+    # fo.write("ac: {:.4f}\n".format(test_info["ac"][-1]))
 
 
 
