@@ -33,18 +33,39 @@ class AD_Loss(nn.Module):
         t = att.size(1)      
         anomaly = torch.topk(att, t//16 + 1, dim=-1)[0].mean(-1)
         anomaly_loss = self.bce(anomaly, _label)
-        # print('anomaly_loss:', anomaly_loss)
-        # HP Loss 추가
-        # 시그모이드 함수를 통과시켜서 0~1 사이의 값으로 변환
-        oh_att = nn.Sigmoid()(oh_att)
+        
+        # ohloss
+        # predict head(0.5 이상이면 1, 아니면 0)
+        predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
         oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].mean(-1)
-        oh_loss = self.bce(oh, _label)
-        # print('oh_loss:', oh_loss)
-        tf_att = nn.Sigmoid()(tf_att)
+        # min-max scaling
+        # 최댓값이 1 이상이면 min-max scaling을 통해 0~1 사이의 값으로 변환
+        if oh.max() > 1:
+            oh = (oh - oh.min()) / (oh.max() - oh.min())
+
+        oh_loss = self.bce(oh, predict_label)
         tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].mean(-1)
-        tf_loss = self.bce(tf, _label)
-        # print('tf_loss:', tf_loss)
-        hp_loss = torch.max(oh_loss, tf_loss)
+        if tf.max() > 1:
+            tf = (tf - tf.min()) / (tf.max() - tf.min())
+        tf_loss = self.bce(tf, predict_label)
+        hp = torch.max(oh, tf)
+        hp_loss = self.bce(hp, predict_label)
+        
+        
+        # print('anomaly_loss:', anomaly_loss)
+        # HP Loss 추가 
+        # 시그모이드 함수를 통과시켜서 0~1 사이의 값으로 변환
+        # oh_att = nn.Sigmoid()(oh_att)
+        # oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].mean(-1)
+
+        # oh_loss = self.bce(oh, _label)
+        # print('oh_loss:', oh_loss)
+        # tf_att = nn.Sigmoid()(tf_att)
+        # # tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].mean(-1)
+        # tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        # tf_loss = self.bce(tf, anomaly)
+        # # print('tf_loss:', tf_loss)
+        # hp_loss = torch.max(oh_loss, tf_loss)
         # print('hp_loss:', hp_loss)
 
         panomaly = torch.topk(1 - N_Aatt, t//16 + 1, dim=-1)[0].mean(-1)
@@ -62,7 +83,7 @@ class AD_Loss(nn.Module):
         cost = anomaly_loss + 0.1 * (A_loss + panomaly_loss + N_loss + A_Nloss) + 0.1 * triplet + 0.001 * kl_loss + 0.0001 * distance
 
         # HPLoss 추가
-        new_cost = cost + self.HPLoss_w * hp_loss
+        new_cost = 0.5*cost + self.HPLoss_w * hp_loss
         
         loss['total_loss'] = cost
         loss['att_loss'] = anomaly_loss

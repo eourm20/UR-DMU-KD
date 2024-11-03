@@ -101,15 +101,15 @@ class WSAD(Module):
             x = torch.cat((x, (torch.cat([N_aug_new + A_Naug, A_aug_new + N_Aaug], dim=0))), dim=-1)
             
             # oh_att와 tf_att의 크기를 x와 맞추기 위해 차원 확장
-            oh_att_expanded = oh_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
-            tf_att_expanded = tf_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
+            # oh_att_expanded = oh_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
+            # tf_att_expanded = tf_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
 
-            # 마지막 차원으로 확장
-            oh_att_expanded = oh_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
-            tf_att_expanded = tf_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
+            # # 마지막 차원으로 확장
+            # oh_att_expanded = oh_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
+            # tf_att_expanded = tf_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
 
-            # x에 oh_att와 tf_att 중 큰 값을 더함
-            x = x + torch.max(oh_att_expanded, tf_att_expanded)  # (1, 88, 512)
+            # # x에 oh_att와 tf_att 중 큰 값을 더함
+            # x = x + torch.max(oh_att_expanded, tf_att_expanded)  # (1, 88, 512)
 
             pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
 
@@ -134,16 +134,16 @@ class WSAD(Module):
             N_aug = self.encoder_mu(N_aug)
 
             x = torch.cat([x, A_aug + N_aug], dim=-1)
-            # oh_att와 tf_att의 크기를 x와 맞추기 위해 차원 확장
-            oh_att_expanded = oh_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
-            tf_att_expanded = tf_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
+            # # oh_att와 tf_att의 크기를 x와 맞추기 위해 차원 확장
+            # oh_att_expanded = oh_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
+            # tf_att_expanded = tf_att.unsqueeze(-1)  # (1, 88) -> (1, 88, 1)
 
-            # 마지막 차원으로 확장
-            oh_att_expanded = oh_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
-            tf_att_expanded = tf_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
+            # # 마지막 차원으로 확장
+            # oh_att_expanded = oh_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
+            # tf_att_expanded = tf_att_expanded.expand(-1, -1, d)  # (1, 88, 1) -> (1, 88, 512)
 
-            # x에 oh_att와 tf_att 중 큰 값을 더함
-            x = x + torch.max(oh_att_expanded, tf_att_expanded)  # (1, 88, 512)
+            # # x에 oh_att와 tf_att 중 큰 값을 더함
+            # x = x + torch.max(oh_att_expanded, tf_att_expanded)  # (1, 88, 512)
 
             pre_att = self.cls_head(x).reshape((b, n, -1)).mean(1)
             return {"frame": pre_att}
