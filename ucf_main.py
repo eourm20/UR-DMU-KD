@@ -70,7 +70,7 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU-HPE2", task_name="KD_noise75", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU-HPE2", task_name="KD_noise25_2", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     # task_logger = None
     
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     student_net = student_net.cuda()
     
     teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher1000__best.pkl', map_location = 'cuda'))
+    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher1000E__best.pkl', map_location = 'cuda'))
     teacher_net = teacher_net.cuda()
     
     normal_train_loader = data.DataLoader(
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     test_info = {"step": [], "auc": [],"ap":[],"ac":[]}
     
     best_auc = 0
+    best_auc_update = 0
 
     criterion = AD_Loss()
     
@@ -134,22 +135,35 @@ if __name__ == "__main__":
             # print('unlabeled_loader_iter')
             
         train(student_net, teacher_net, normal_loader_iter,abnormal_loader_iter, unlabeled_loader_iter, optimizer, criterion, task_logger, step, config.num_iters, config.KD_w)
-        if step % 10 == 0 and step >= 10:
-            test(student_net, config, test_loader, test_info, step)
-            if task_logger is not None:
-                task_logger.report_scalar(title = "AUC",series = "AUC",value = test_info["auc"][-1], iteration = step)
-                task_logger.report_scalar(title = "AP",series = "AP",value = test_info["ap"][-1], iteration = step)
-                # task_logger.report_scalar(title = "ACC",series = "ACC",value = test_info["ac"][-1], iteration = step)
-            if test_info["auc"][-1] > best_auc:
-                best_auc = test_info["auc"][-1]
-                utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_KD_noise75_best_record.txt"))
+        # early stopping 20번동안 best auc가 갱신되지 않으면 종료
+        test(student_net, config, test_loader, test_info, step)
+        if test_info["auc"][-1] > best_auc:
+            best_auc = test_info["auc"][-1]
+            best_auc_update = 0
+            utils.save_best_record(test_info, 
+                os.path.join(config.output_path, "KD_noise25_2_best_record.txt"))
+            torch.save(student_net.state_dict(), os.path.join(args.model_path, \
+                args.model_file.split('<')[0]+"_best.pkl"))
+        else:
+            best_auc_update += 1
+            if best_auc_update == 20:
+                break
+        # if step % 10 == 0 and step >= 10:
+        #     test(student_net, config, test_loader, test_info, step)
+        #     if task_logger is not None:
+        #         task_logger.report_scalar(title = "AUC",series = "AUC",value = test_info["auc"][-1], iteration = step)
+        #         task_logger.report_scalar(title = "AP",series = "AP",value = test_info["ap"][-1], iteration = step)
+        #         # task_logger.report_scalar(title = "ACC",series = "ACC",value = test_info["ac"][-1], iteration = step)
+        #     if test_info["auc"][-1] > best_auc:
+        #         best_auc = test_info["auc"][-1]
+        #         utils.save_best_record(test_info, 
+        #             os.path.join(config.output_path, "ucf_KD_noise25_best_record.txt"))
 
-                torch.save(student_net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file.split('<')[0]+"_best.pkl"))
-            if step == config.num_iters:
-                utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "ucf_KD_noise75_last_record_{}.txt".format(step)))
+        #         torch.save(student_net.state_dict(), os.path.join(args.model_path, \
+        #             args.model_file.split('<')[0]+"_best.pkl"))
+        #     if step == config.num_iters:
+        #         utils.save_best_record(test_info, 
+        #             os.path.join(config.output_path, "ucf_KD_noise25_last_record_{}.txt".format(step)))
 
-                torch.save(student_net.state_dict(), os.path.join(args.model_path, \
-                    args.model_file.split('<')[0]+"{}_last.pkl".format(step)))
+        #         torch.save(student_net.state_dict(), os.path.join(args.model_path, \
+        #             args.model_file.split('<')[0]+"{}_last.pkl".format(step)))

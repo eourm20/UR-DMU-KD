@@ -58,8 +58,8 @@ def update_ema_variables(teacher_model, student_model, initial_alpha, final_alph
     # student_model: 현재 학습 중인 스튜던트 모델
     # alpha: EMA decay rate, 값이 클수록 과거 가중치가 더 크게 반영됨
     # global_step: 현재 학습 스텝
-    # alpha = initial_alpha
-    alpha = initial_alpha * np.exp(decay_rate * global_step)
+    alpha = initial_alpha
+    # alpha = initial_alpha * np.exp(decay_rate * global_step)
     for teacher_param, student_param in zip(teacher_model.parameters(), student_model.parameters()):
         # 수정된 방식으로 add_ 사용
         teacher_param.data.mul_(alpha).add_(student_param.data, alpha=1 - alpha)
@@ -139,6 +139,7 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
         teacher_output = teacher_net(_aug_unlabeled_data)  
     
     # autograd를 활성화하기 위해 student 모델의 forward pass는 torch.no_grad() 바깥에서 수행
+    student_net.eval()  # student_net을 eval 모드로 설정
     student_net.flag = "Unlabel_Train"
     student_output = student_net(_unlabeled_data)
 
@@ -151,12 +152,12 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # student_optimizer.step()
     
     # total_loss
-    total_loss = supervised_loss + KD_w * unsupervised_loss
+    total_loss = supervised_loss*0.5 + KD_w * unsupervised_loss
     total_loss.backward()
     student_optimizer.step()
     
     # EMA 업데이트
-    # update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+1, decay_rate)
+    update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+2, decay_rate)
             
     if task_logger is not None:
         task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = supervised_loss.item(), iteration = index)
