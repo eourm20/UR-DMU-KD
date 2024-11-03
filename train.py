@@ -64,12 +64,21 @@ def update_ema_variables(teacher_model, student_model, initial_alpha, final_alph
         # 수정된 방식으로 add_ 사용
         teacher_param.data.mul_(alpha).add_(student_param.data, alpha=1 - alpha)
         
+# # 이상 탐지 손실 함수(distillation loss)
+# def consistency_loss(student_output, teacher_output, weight=2.0):
+#     """
+#     Consistency loss를 계산하는 함수. student 모델의 출력과 EMA를 적용한 teacher 모델의 출력 사이의 차이를 줄이는 목적.
+#     """
+#     return weight * F.mse_loss(student_output['frame'], teacher_output['frame'])
+
 # 이상 탐지 손실 함수(distillation loss)
-def consistency_loss(student_output, teacher_output, weight=2.0):
+def consistency_loss(student_output, teacher_output, weight=0.3):
     """
     Consistency loss를 계산하는 함수. student 모델의 출력과 EMA를 적용한 teacher 모델의 출력 사이의 차이를 줄이는 목적.
     """
-    return weight * F.mse_loss(student_output['frame'], teacher_output['frame'])
+    psudo_label = torch.where(teacher_output['frame'] > 0.5, torch.ones_like(teacher_output['frame']), torch.zeros_like(teacher_output['frame']))
+    return weight * nn.BCELoss()(student_output['frame'], psudo_label)
+    # return weight * F.mse_loss(student_output['frame'], teacher_output['frame'])
 
 # 어둡게 처리하는 함수
 def darken_data(data, factor=0.5):
