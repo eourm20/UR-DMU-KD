@@ -70,7 +70,7 @@ if __name__ == "__main__":
         key='60B49RW4U8P2S7DS15DW',
         secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
     )
-    task = clearml.Task.init(project_name="UR-DMU-HPE2", task_name="KD_noise25_2", task_type=Task.TaskTypes.training)
+    task = clearml.Task.init(project_name="UR-DMU-HPE3", task_name="KD_noise25", task_type=Task.TaskTypes.training)
     task_logger = task.get_logger()
     # task_logger = None
     
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "KD_noise25_2_best_record.txt"))
+                os.path.join(config.output_path, "KD_noise25_best_record.txt"))
             torch.save(student_net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:
