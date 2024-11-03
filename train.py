@@ -105,20 +105,20 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # --------------------------------------------------------
     # 데이터를 GPU로 이동
     # 화질 저하
-    pool = nn.AdaptiveAvgPool1d(512)
-    ulinput_lowres = pool(ulinput)
-    _unlabeled_data = ulinput_lowres.cuda()
-    _aug_unlabeled_data = aug_ulinput.cuda()
+    # pool = nn.AdaptiveAvgPool1d(512)
+    # ulinput_lowres = pool(ulinput)
+    # _unlabeled_data = ulinput_lowres.cuda()
+    # _aug_unlabeled_data = aug_ulinput.cuda()
     
     # # 어둡게 처리
     # ulinput_dark = darken_data(ulinput, factor=0.5)
     # _unlabeled_data = ulinput_dark.cuda()
     # _aug_unlabeled_data = aug_ulinput.cuda()
     
-    # # 노이즈 추가
-    # ulinput_noisy = add_noise(ulinput)
-    # _unlabeled_data = ulinput_noisy.cuda()
-    # _aug_unlabeled_data = aug_ulinput.cuda()
+    # 노이즈 추가
+    ulinput_noisy = add_noise(ulinput)
+    _unlabeled_data = ulinput_noisy.cuda()
+    _aug_unlabeled_data = aug_ulinput.cuda()
     
 
     # ----------------- supervised loss -----------------
