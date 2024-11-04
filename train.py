@@ -99,7 +99,7 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     initial_alpha = 0.999
     final_alpha = 0.8
 
-    decay_rate = np.log(final_alpha / initial_alpha) / (num_iters)
+    decay_rate = np.log(final_alpha / initial_alpha) / num_iters
     
     ninput, nlabel = next(normal_loader)
     ainput, alabel = next(abnormal_loader)
@@ -165,8 +165,8 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     total_loss.backward()
     student_optimizer.step()
     
-    # EMA 업데이트
-    update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+2, decay_rate)
+    # # EMA 업데이트
+    # update_ema_variables(teacher_net, student_net, initial_alpha, final_alpha, index+2, decay_rate)
             
     if task_logger is not None:
         task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = supervised_loss.item(), iteration = index)

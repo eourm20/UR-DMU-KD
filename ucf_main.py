@@ -63,22 +63,22 @@ if __name__ == "__main__":
 
     config.len_feature = 1024
 
-    Task.set_credentials(
-        api_host="https://api.clear.ml",
-        web_host="https://app.clear.ml",
-        files_host="https://files.clear.ml",
-        key='60B49RW4U8P2S7DS15DW',
-        secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
-    )
-    task = clearml.Task.init(project_name="UR-DMU-HPE3", task_name="KD_noise25", task_type=Task.TaskTypes.training)
-    task_logger = task.get_logger()
+    # Task.set_credentials(
+    #     api_host="https://api.clear.ml",
+    #     web_host="https://app.clear.ml",
+    #     files_host="https://files.clear.ml",
+    #     key='60B49RW4U8P2S7DS15DW',
+    #     secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
+    # )
+    # task = clearml.Task.init(project_name="UR-DMU-HPE3", task_name="KD_noise_75", task_type=Task.TaskTypes.training)
+    # task_logger = task.get_logger()
     task_logger = None
     
     student_net = Student_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
     student_net = student_net.cuda()
     
     teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher1000E__best.pkl', map_location = 'cuda'))
+    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher500__best.pkl', map_location = 'cuda'))
     teacher_net = teacher_net.cuda()
     
     normal_train_loader = data.DataLoader(
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "KD_noise25_best_record.txt"))
+                os.path.join(config.output_path, "KD_noise75_best_record.txt"))
             torch.save(student_net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:
