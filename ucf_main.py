@@ -64,15 +64,16 @@ if __name__ == "__main__":
 
     config.len_feature = 1024
 
-    Task.set_credentials(
-        api_host="https://api.clear.ml",
-        web_host="https://app.clear.ml",
-        files_host="https://files.clear.ml",
-        key='60B49RW4U8P2S7DS15DW',
-        secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
-    )
-    task = clearml.Task.init(project_name="UR-DMU-HPE3", task_name="AllE", task_type=Task.TaskTypes.training)
-    task_logger = task.get_logger()
+    # Task.set_credentials(
+    #     api_host="https://api.clear.ml",
+    #     web_host="https://app.clear.ml",
+    #     files_host="https://files.clear.ml",
+    #     key='60B49RW4U8P2S7DS15DW',
+    #     secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
+    # )
+    # task = clearml.Task.init(project_name="UR-DMU-HPE3", task_name="AllE", task_type=Task.TaskTypes.training)
+    # task_logger = task.get_logger()
+    task_logger = None
     
     net = WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
     net = net.cuda()
@@ -125,13 +126,13 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "ucf_AllE_best_record.txt"))
+                os.path.join(config.output_path, "Teacher500_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
-        # else:
-        #     best_auc_update += 1
-        #     if best_auc_update == 20:
-        #         break
+        else:
+            best_auc_update += 1
+            if best_auc_update == 20:
+                break
             
         # if step % 10 == 0 and step >= 10:
         #     test(net, config, test_loader, test_info, step)
