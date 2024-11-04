@@ -13,7 +13,7 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_svr3_{}.list'.format(self.mode))
+        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
         for line in split_file:
@@ -39,17 +39,17 @@ class UCF_crime(data.DataLoader):
         else:
             data,label = self.get_data(index)
             return data,label
-
+ 
     def get_data(self, index):
         vid_info = self.vid_list[index][0]  
         name = vid_info.split("/")[-1].split("_x264")[0]
         video_feature = np.load(vid_info).astype(np.float32)   
-
+ 
         if "Normal" in vid_info.split("/")[-1]:
             label = 0
         else:
             label = 1
-        if self.mode == "Train":
+        if self.mode == "Train": 
             new_feat = np.zeros((self.num_segments, video_feature.shape[1])).astype(np.float32)
             r = np.linspace(0, len(video_feature), self.num_segments + 1, dtype = int)
             for i in range(self.num_segments):
@@ -70,8 +70,8 @@ class Unlabeled_UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        origin_split_path = os.path.join('list','KD/unlabel_75/ucf-unlabel-i3d_svr3.list')
-        weak_aug_split_path = os.path.join('list','KD/unlabel_75/ucf-unlabel-i3d_5_svr3.list')
+        origin_split_path = os.path.join('list','KD/unlabel_50/ucf-unlabel-i3d.list')
+        weak_aug_split_path = os.path.join('list','KD/unlabel_50/ucf-unlabel-i3d_5.list')
         origin_split_file = open(origin_split_path, 'r')
         weak_aug_split_file = open(weak_aug_split_path, 'r')
         self.origin_vid_list = []
