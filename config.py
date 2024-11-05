@@ -14,6 +14,7 @@ class Config(object):
         self.seed = args.seed
         self.num_segments = args.num_segments
         self.KD_w = args.KD_w
+        self.HPLoss_w = args.HPLoss_w
 
             
 if __name__ == "__main__":

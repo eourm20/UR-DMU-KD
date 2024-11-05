@@ -53,7 +53,7 @@ class Student_WSAD(Module):
         kl_loss = torch.mean(-0.5 * torch.sum(1 + var - mu ** 2 - var.exp(), dim = 1))
         return kl_loss
 
-    def forward(self, x):
+    def forward(self, x, oh_att, tf_att):
         if len(x.size()) == 4:
             b, n, t, d = x.size()
             x = x.reshape(b * n, t, d)
@@ -128,7 +128,10 @@ class Student_WSAD(Module):
                     'A_att': A_att.reshape((b//2, n, -1)).mean(1),
                     "N_att": N_att.reshape((b//2, n, -1)).mean(1),
                     "A_Natt": A_Natt.reshape((b//2, n, -1)).mean(1),
-                    "N_Aatt": N_Aatt.reshape((b//2, n, -1)).mean(1)
+                    "N_Aatt": N_Aatt.reshape((b//2, n, -1)).mean(1),
+                    # HPLoss 추가
+                    "oh_att": oh_att,
+                    "tf_att": tf_att
                 }
         else:           
             _, A_aug = self.Amemory(x)

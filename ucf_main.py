@@ -78,7 +78,7 @@ if __name__ == "__main__":
     student_net = student_net.cuda()
     
     teacher_net = Teacher_WSAD(config.len_feature, flag = "Train", a_nums = 60, n_nums = 60)
-    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher500__best.pkl', map_location = 'cuda'))
+    teacher_net.load_state_dict(torch.load(f'{args.model_path}Teacher(HP)__best.pkl', map_location = 'cuda'))
     teacher_net = teacher_net.cuda()
     
     normal_train_loader = data.DataLoader(
@@ -107,7 +107,8 @@ if __name__ == "__main__":
     best_auc = 0
     best_auc_update = 0
 
-    criterion = AD_Loss()
+    # HPLoss 가중치:lambda
+    criterion = AD_Loss(config.HPLoss_w)
     
     optimizer = torch.optim.Adam(student_net.parameters(), lr = config.lr[0],
         betas = (0.9, 0.999), weight_decay = 0.00005)
@@ -141,7 +142,7 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "KD_dark50_best_record.txt"))
+                os.path.join(config.output_path, "KD_res25(HP)_best_record.txt"))
             torch.save(student_net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:

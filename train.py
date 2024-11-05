@@ -8,10 +8,11 @@ def norm(data):
     return torch.div(data, l2)
 
 class AD_Loss(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, HPLoss_w) -> None:
         super().__init__()
         self.bce = nn.BCELoss()
-      
+        self.HPLoss_w = HPLoss_w
+        
         
     def forward(self, result, _label):
         loss = {}
@@ -26,10 +27,50 @@ class AD_Loss(nn.Module):
         N_Aatt = result["N_Aatt"]
         kl_loss = result["kl_loss"]
         distance = result["distance"]
+        # HPLoss 추가
+        oh_att = result["oh_att"]
+        tf_att = result["tf_att"]
+        
         b = _label.size(0)//2
         t = att.size(1)      
         anomaly = torch.topk(att, t//16 + 1, dim=-1)[0].mean(-1)
         anomaly_loss = self.bce(anomaly, _label)
+        
+        # ohloss
+        # predict head(0.5 이상이면 1, 아니면 0)
+        predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
+        oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        # min-max scaling
+        # 최댓값이 1 이상이면 min-max scaling을 통해 0~1 사이의 값으로 변환
+        if oh.max() > 1:
+            oh = (oh - oh.min()) / (oh.max() - oh.min())
+
+        # oh_loss = self.bce(oh, _label)
+        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        if tf.max() > 1:
+            tf = (tf - tf.min()) / (tf.max() - tf.min())
+        # tf_loss = self.bce(tf, _label)
+        # 평균값  
+        hp = torch.max(oh,tf)
+        # hp_loss = self.bce(hp, predict_label)
+        hp_loss = nn.MSELoss()(hp, anomaly)
+        
+        
+        # print('anomaly_loss:', anomaly_loss)
+        # HP Loss 추가 
+        # 시그모이드 함수를 통과시켜서 0~1 사이의 값으로 변환
+        # oh_att = nn.Sigmoid()(oh_att)
+        # oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].mean(-1)
+
+        # oh_loss = self.bce(oh, _label)
+        # print('oh_loss:', oh_loss)
+        # tf_att = nn.Sigmoid()(tf_att)
+        # # tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].mean(-1)
+        # tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        # tf_loss = self.bce(tf, anomaly)
+        # # print('tf_loss:', tf_loss)
+        # hp_loss = torch.max(oh_loss, tf_loss)
+        # print('hp_loss:', hp_loss)
 
         panomaly = torch.topk(1 - N_Aatt, t//16 + 1, dim=-1)[0].mean(-1)
         panomaly_loss = self.bce(panomaly, torch.ones((b)).cuda())
@@ -39,9 +80,15 @@ class AD_Loss(nn.Module):
 
         N_loss = self.bce(N_att, torch.ones_like((N_att)).cuda())    
         A_Nloss = self.bce(A_Natt, torch.zeros_like((A_Natt)).cuda())
+        
+        
 
+        # 기존의 AD_Loss
         cost = anomaly_loss + 0.1 * (A_loss + panomaly_loss + N_loss + A_Nloss) + 0.1 * triplet + 0.001 * kl_loss + 0.0001 * distance
 
+        # HPLoss 추가
+        new_cost = 0.5*cost + self.HPLoss_w * hp_loss
+        
         loss['total_loss'] = cost
         loss['att_loss'] = anomaly_loss
         loss['N_Aatt'] = panomaly_loss
@@ -50,7 +97,13 @@ class AD_Loss(nn.Module):
         loss['A_Nloss'] = A_Nloss
         loss["triplet"] = triplet
         loss['kl_loss'] = kl_loss
-        return cost, loss
+        # HPLoss 추가
+        loss['new_total_loss'] = new_cost
+        # loss['oh_loss'] = oh_loss
+        # loss['tf_loss'] = tf_loss
+        loss['hp_loss'] = hp_loss
+        
+        return new_cost, loss
 
 
 def update_ema_variables(teacher_model, student_model, initial_alpha, final_alpha, global_step, decay_rate):
@@ -101,28 +154,32 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
 
     decay_rate = np.log(final_alpha / initial_alpha) / num_iters
     
-    ninput, nlabel = next(normal_loader)
-    ainput, alabel = next(abnormal_loader)
+    ninput, nlabel, nohloss, ntfloss = next(normal_loader)
+    ainput, alabel, aohloss, atfloss = next(abnormal_loader)
     ulinput, aug_ulinput = next(unlabel_loader)
-    
+
     _data = torch.cat((ninput, ainput), 0)
     _label = torch.cat((nlabel, alabel), 0)
+    _ohloss = torch.cat((nohloss, aohloss), 0)
+    _tfloss = torch.cat((ntfloss, atfloss), 0)
     _data = _data.cuda()
     _label = _label.cuda()
+    _ohloss = _ohloss.cuda()
+    _tfloss = _tfloss.cuda()
     
     # ----------------- strong augmentation -----------------
     # --------------------------------------------------------
     # 데이터를 GPU로 이동
     # 화질 저하
-    # pool = nn.AdaptiveAvgPool1d(512)
-    # ulinput_lowres = pool(ulinput)
-    # _unlabeled_data = ulinput_lowres.cuda()
-    # _aug_unlabeled_data = aug_ulinput.cuda()
+    pool = nn.AdaptiveAvgPool1d(512)
+    ulinput_lowres = pool(ulinput)
+    _unlabeled_data = ulinput_lowres.cuda()
+    _aug_unlabeled_data = aug_ulinput.cuda()
     
     # # 어둡게 처리
-    ulinput_dark = darken_data(ulinput, factor=0.5)
-    _unlabeled_data = ulinput_dark.cuda()
-    _aug_unlabeled_data = aug_ulinput.cuda()
+    # ulinput_dark = darken_data(ulinput, factor=0.5)
+    # _unlabeled_data = ulinput_dark.cuda()
+    # _aug_unlabeled_data = aug_ulinput.cuda()
     
     # 노이즈 추가
     # ulinput_noisy = add_noise(ulinput)
@@ -133,7 +190,7 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # ----------------- supervised loss -----------------
     student_net.train()
     student_net.flag = "Label_Train"
-    predict = student_net(_data)
+    predict = student_net(_data, _ohloss, _tfloss)
     supervised_loss, loss = criterion(predict, _label)
     student_optimizer.zero_grad()
     # cost.backward()
@@ -150,7 +207,7 @@ def train(student_net, teacher_net, normal_loader, abnormal_loader, unlabel_load
     # autograd를 활성화하기 위해 student 모델의 forward pass는 torch.no_grad() 바깥에서 수행
     student_net.eval()  # student_net을 eval 모드로 설정
     student_net.flag = "Unlabel_Train"
-    student_output = student_net(_unlabeled_data)
+    student_output = student_net(_unlabeled_data, None, None)
 
     # KD loss 계산
     unsupervised_loss = consistency_loss(student_output, teacher_output)

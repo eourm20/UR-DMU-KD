@@ -24,12 +24,14 @@ def test(net, config, test_loader, test_info, step, model_file = None):
         temp_predict = torch.zeros((0)).cuda()
         
         for i in range(len(test_loader.dataset)):
-            _data, _label, _name = next(load_iter)
+            _data, _label, _name, _ohloss, _tfloss = next(load_iter)
             
             _data = _data.cuda()
             _label = _label.cuda()
+            _ohloss = _ohloss.cuda()
+            _tfloss = _tfloss.cuda()
             
-            res = net(_data)   
+            res = net(_data, _ohloss, _tfloss)    
             a_predict = res["frame"]
             # temp_predict = torch.cat([temp_predict, a_predict], dim=0)
             # if (i + 1) % 10 == 0 :
