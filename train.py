@@ -36,20 +36,22 @@ class AD_Loss(nn.Module):
         
         # ohloss
         # predict head(0.5 이상이면 1, 아니면 0)
-        # predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
+        predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
         oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].max(-1)[0]
         # min-max scaling
         # 최댓값이 1 이상이면 min-max scaling을 통해 0~1 사이의 값으로 변환
         if oh.max() > 1:
             oh = (oh - oh.min()) / (oh.max() - oh.min())
 
-        oh_loss = self.bce(oh, _label)
+        # oh_loss = self.bce(oh, _label)
         tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
         if tf.max() > 1:
             tf = (tf - tf.min()) / (tf.max() - tf.min())
-        tf_loss = self.bce(tf, _label)
-        hp = torch.max(oh, tf)
-        hp_loss = self.bce(hp, _label)
+        # tf_loss = self.bce(tf, _label)
+        # 평균값  
+        hp = torch.max(oh,tf)
+        # hp_loss = self.bce(hp, predict_label)
+        hp_loss = nn.MSELoss()(hp, anomaly)
         
         
         # print('anomaly_loss:', anomaly_loss)
@@ -95,8 +97,8 @@ class AD_Loss(nn.Module):
         loss['kl_loss'] = kl_loss
         # HPLoss 추가
         loss['new_total_loss'] = new_cost
-        loss['oh_loss'] = oh_loss
-        loss['tf_loss'] = tf_loss
+        # loss['oh_loss'] = oh_loss
+        # loss['tf_loss'] = tf_loss
         loss['hp_loss'] = hp_loss
         
         return new_cost, loss
@@ -124,6 +126,6 @@ def train(net, normal_loader, abnormal_loader, optimizer, criterion, task_logger
     if task_logger is not None:
         task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = loss['total_loss'].item(), iteration = index)
         task_logger.report_scalar(title = 'Supervised Loss', series = 'new_total_loss', value = loss['new_total_loss'].item(), iteration = index)
-        task_logger.report_scalar(title = 'Supervised Loss', series = 'OHLoss', value = loss['oh_loss'].item(), iteration = index)
-        task_logger.report_scalar(title = 'Supervised Loss', series = 'TFLoss', value = loss['tf_loss'].item(), iteration = index)
+        # task_logger.report_scalar(title = 'Supervised Loss', series = 'OHLoss', value = loss['oh_loss'].item(), iteration = index)
+        # task_logger.report_scalar(title = 'Supervised Loss', series = 'TFLoss', value = loss['tf_loss'].item(), iteration = index)
         task_logger.report_scalar(title = 'Supervised Loss', series = 'HPLoss', value = loss['hp_loss'].item(), iteration = index)
