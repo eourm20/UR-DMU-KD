@@ -52,8 +52,8 @@ def test(net, config, test_loader, test_info, step, model_file = None):
         fpr,tpr,_ = roc_curve(frame_gt, frame_predict)
         auc_score = auc(fpr, tpr)
     
-        corrent_num = np.sum(np.array(cls_label) == np.array(cls_pre), axis=0)
-        accuracy = corrent_num / (len(cls_pre))
+        # corrent_num = np.sum(np.array(cls_label) == np.array(cls_pre), axis=0)
+        # accuracy = corrent_num / (len(cls_pre))
         
         precision, recall, th = precision_recall_curve(frame_gt, frame_predict,)
         ap_score = auc(recall, precision)
@@ -66,5 +66,5 @@ def test(net, config, test_loader, test_info, step, model_file = None):
         test_info["step"].append(step)
         test_info["auc"].append(auc_score)
         test_info["ap"].append(ap_score)
-        test_info["ac"].append(accuracy)
+        # test_info["ac"].append(accuracy)
         

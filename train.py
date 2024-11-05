@@ -36,20 +36,20 @@ class AD_Loss(nn.Module):
         
         # ohloss
         # predict head(0.5 이상이면 1, 아니면 0)
-        predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
-        oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].mean(-1)
+        # predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
+        oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].max(-1)[0]
         # min-max scaling
         # 최댓값이 1 이상이면 min-max scaling을 통해 0~1 사이의 값으로 변환
         if oh.max() > 1:
             oh = (oh - oh.min()) / (oh.max() - oh.min())
 
-        oh_loss = self.bce(oh, predict_label)
-        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].mean(-1)
+        oh_loss = self.bce(oh, _label)
+        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
         if tf.max() > 1:
             tf = (tf - tf.min()) / (tf.max() - tf.min())
-        tf_loss = self.bce(tf, predict_label)
+        tf_loss = self.bce(tf, _label)
         hp = torch.max(oh, tf)
-        hp_loss = self.bce(hp, predict_label)
+        hp_loss = self.bce(hp, _label)
         
         
         # print('anomaly_loss:', anomaly_loss)
