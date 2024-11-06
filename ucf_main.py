@@ -102,7 +102,7 @@ if __name__ == "__main__":
             shuffle = False, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn)
 
-    test_info = {"step": [], "auc": [],"ap":[],"ac":[]}
+    test_info = {"step": [], "auc": [],"ap":[]}
     
     best_auc = 0
     best_auc_update = 0

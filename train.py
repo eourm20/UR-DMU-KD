@@ -39,6 +39,7 @@ class AD_Loss(nn.Module):
         # ohloss
         # predict head(0.5 이상이면 1, 아니면 0)
         predict_label = torch.where(anomaly > 0.5, torch.ones_like(anomaly), torch.zeros_like(anomaly))
+        oh_att = oh_att * 2
         oh = torch.topk(oh_att, t//16 + 1, dim = -1)[0].max(-1)[0]
         # min-max scaling
         # 최댓값이 1 이상이면 min-max scaling을 통해 0~1 사이의 값으로 변환
