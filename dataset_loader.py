@@ -44,11 +44,11 @@ class UCF_crime(data.DataLoader):
     def __getitem__(self, index):
         
         if self.mode == "Test":
-            data,label,name = self.get_data(index)
-            return data,label,name
+            data,label,name,oh_att,tf_att = self.get_data(index)
+            return data,label,name,oh_att,tf_att
         else:
-            data,label = self.get_data(index)
-            return data,label
+            data,label,oh_att,tf_att = self.get_data(index)
+            return data,label,oh_att,tf_att
  
     def get_data(self, index):
         vid_info = self.vid_list[index][0]
@@ -100,8 +100,8 @@ class Unlabeled_UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        origin_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d.list')
-        weak_aug_split_path = os.path.join('list','KD/unlabel_25/ucf-unlabel-i3d_5.list')
+        origin_split_path = os.path.join('list','KD/unlabel_75/ucf-unlabel-i3d.list')
+        weak_aug_split_path = os.path.join('list','KD/unlabel_75/ucf-unlabel-i3d_5.list')
         origin_split_file = open(origin_split_path, 'r')
         weak_aug_split_file = open(weak_aug_split_path, 'r')
         self.origin_vid_list = []
