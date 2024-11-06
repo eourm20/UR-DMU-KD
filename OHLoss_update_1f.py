@@ -102,7 +102,7 @@ def find_optimal_clusters(data):
     optimal_clusters = iters[np.argmax(dunn_scores)]
     return optimal_clusters
 
-'''
+
 # 시각화
 def plot_clusters(keypoints_flattened, labels, centers):
     """
@@ -128,7 +128,7 @@ def plot_clusters(keypoints_flattened, labels, centers):
     plt.close()
     
     return colors
-'''
+
 def cluster_keypoints_with_loss(keypoints):
     """
     키포인트 데이터를 클러스터링하고, 로스 함수를 계산하는 함수
@@ -145,11 +145,11 @@ def cluster_keypoints_with_loss(keypoints):
     try:
         keypoints_2d = pca.fit_transform(keypoints_flattened)
     except:
-        return 0
-        '''
+        # return 0
+        
         # 시각화
         return 0, colors, labels
-        '''
+        
     # 최적의 클러스터 수 찾기
     optimal_clusters = find_optimal_clusters(keypoints_2d)
     
@@ -160,16 +160,16 @@ def cluster_keypoints_with_loss(keypoints):
     # 각 사람이 속한 클러스터의 인덱스 및 클러스터 중심점 계산
     labels = kmeans.labels_
     centers = kmeans.cluster_centers_
-    '''
+    
     # 시각화
     colors = plot_clusters(keypoints_2d, labels, centers)
-    '''
+    
     if optimal_clusters == 1:
-        return 0
-        '''
+        # return 0
+        
         # 시각화
         return 0, colors, labels
-        '''
+        
     cluster_counts = np.bincount(labels)
     
     # 가장 적은 인원을 가진 클러스터들의 인덱스와 그 인원 수 확인
@@ -202,11 +202,11 @@ def cluster_keypoints_with_loss(keypoints):
         final_loss += np.linalg.norm(center - centers[abnormal_cluster])
     
     # 평균 로스 반환    
-    return final_loss*(np.max(cluster_counts)) / len(centers)
-    '''
+    # return final_loss*(np.max(cluster_counts)) / len(centers)
+    
     # 시각화
     return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
-    '''
+    
     # # Dunn 지수 계산
     # dunn = dunn_index(keypoints_2d, labels, centers)
     # # 같은 행동을 하는 사람들이 많은 경우 소수의 클러스터는 이상
@@ -238,11 +238,11 @@ class Detectron2Pose:
                 # [x,y,신뢰도]
                 if len(keypoints_predictions) == 0:
                     # print('No person detected')
-                    return filtered_person
-                    '''
+                    # return filtered_person
+                    
                     # 시각화
                     return filtered_person, vis_person
-                    '''    
+                     
                 else:
                     # 필터링할 keypoint 인덱스, COCO index는 0부터 시작하므로 1을 빼줍니다.
                     indices = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -272,27 +272,27 @@ class Detectron2Pose:
                         # 각 keypoint 사이의 최대 거리를 계산
                         max_distance = torch.max(torch.cdist(relative_keypoints, relative_keypoints, p=2))
                         normalized_keypoints = relative_keypoints / max_distance  # 모든 위치값을 최대 거리로 나눔
-                        '''
+                        
                         # 시각화
                         vis_person.append(keypoints_xy)
-                        '''
+                        
                         filtered_person.append(normalized_keypoints)
                     if len(filtered_person) <= 1:
                         # print('No person detected with high confidence keypoints')
                         # filtered_person = np.zeros((13, 3))
                         
-                        return filtered_person
-                        '''
+                        # return filtered_person
+                        
                         # 시각화
                         return filtered_person, vis_person
-                        '''
+                        
                     else:
                         filtered_person = torch.stack(filtered_person, dim=0)
-                        return filtered_person
-                        '''
+                        # return filtered_person
+                        
                         # 시각화
                         return filtered_person, vis_person
-                        '''
+                        
                     
                 
     def normalize(self, frame):
@@ -354,7 +354,7 @@ def process_video(video, crop):
     video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     
     # 파일 이름에 video_name이 포함되어 있는지 확인
-    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
+    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     # name이 포함된 파일 리스트
@@ -378,31 +378,37 @@ def process_video(video, crop):
     if not video_cap.isOpened():
         print("Error opening video file")
         return
-    '''
+    
     # 시각화
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
     print("total frame:", total_frame)
-    np_frame = np.load(f"/home/sb-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/{video_name}.npy")
-
-    print("np_frame shape:", np_frame.shape)
     
-    annotation_abnormal = open(f"/home/sb-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
-    if 'Normal' not in video_name:
-        for line in annotation_abnormal:
-            if video_name in line:
-                abnormals = [int(line.split()[-4]), int(line.split()[-3])]
-                break
-    else:
+    # #test만 사용 가능
+    try:
+        np_frame = np.load(f"/home/subin-oh/Nas-subin/SB-OH/data/I3D_feature/Test/RGB/{video_name}.npy")
+
+        print("np_frame shape:", np_frame.shape)
+        
+        annotation_abnormal = open(f"/home/subin-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
         abnormals = [0, 0]
+        if 'Normal' not in video_name:
+            for line in annotation_abnormal:
+                if video_name in line:
+                    abnormals = [int(line.split()[-4]), int(line.split()[-3])]
+                    break
+        else:
+            abnormals = [0, 0]
+    except:
+        return
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
-    out = cv2.VideoWriter(f'ohloss_vis/{video_name.split("/")[1]}.mp4', fourcc, fps, (448, 398))
+    out = cv2.VideoWriter(f'ohloss_vis/{video_name.split("/")[1]}_1f_W0_2.mp4', fourcc, fps, (448, 398))
     # print(width, height)
-    '''
-    weight = 0.1
+    
+    weight = 0.2
     ohloss_results = {}
     ohloss_results[crop] = []
     OHLoss = []
@@ -410,50 +416,52 @@ def process_video(video, crop):
     while video_cap.isOpened():
         ret, frame = video_cap.read()
         if ret:
+            # if frame_count % 4 == 0 and frame_count != 0:
             data = load_frame_cv2(frame)
             oversampled_data = oversample_data_single_img(data)
             crop_frame = oversampled_data[crop][0][0]
-            keypoints = pose_model.get_pose(crop_frame)
-            '''
+            # crop_frame = data
+            # keypoints = pose_model.get_pose(crop_frame)
+            
             # 시각화
             keypoints, vis_keypoints = pose_model.get_pose(crop_frame)
-            '''
+            
 
             if len(keypoints) > 1:
-                '''
+                
                 # 시각화
                 ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
                 person_colors = [colors[label] for label in labels]
                 person_colors = convert_to_bgr(person_colors)
-                '''
-                ohloss = cluster_keypoints_with_loss(keypoints)
+                
+                # ohloss = cluster_keypoints_with_loss(keypoints)
                 ohloss = ohloss * weight
                 # 소수점 3째 자리까지 반올림
                 ohloss = round(ohloss, 3)
-                '''
+                
                 # 시각화
                 for k in range(len(vis_keypoints)):
                     person = vis_keypoints[k]
                     for kp in person:
                         cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, person_colors[k], -1)
-                '''
+                
             else:
                 ohloss = 0 * weight
-                '''
+                
                 # 시각화
                 if len(vis_keypoints)==1:
                     person = vis_keypoints[0]
                     for kp in person:
                         cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
-                '''
+                
             OHLoss.append(ohloss)
                 
             if frame_count % 16 == 0 and frame_count != 0:
-                fps_OHLoss = sum(OHLoss[i]) / len(OHLoss[i])
+                fps_OHLoss = sum(OHLoss) / len(OHLoss)
                 ohloss_results[crop].append(fps_OHLoss)
                 OHLoss = []
 
-            '''
+            
             # 시각화
             if os.path.exists('plot_frame.png'):
                 plot_image = cv2.imread('plot_frame.png')
@@ -483,7 +491,7 @@ def process_video(video, crop):
             figsize = (crop_frame.shape[1]*2//50, (crop_frame.shape[0])//50)
             fig, ax = plt.subplots(figsize=figsize)
             ax.set_ylim(0, 1)
-            ax.set_xlim(0, np_frame.shape[0])
+            ax.set_xlim(0, total_frame//16)
             ax.plot(ohloss_results[crop])
             ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
             ax.set_xlabel('Time')
@@ -502,16 +510,16 @@ def process_video(video, crop):
             key = cv2.waitKey(25)
             if key == ord('q'):
                 break
-            '''
+                
             frame_count += 1
         else:
             break
     video_cap.release()
-    '''
+    
     # 시각화
     out.release()
     cv2.destroyAllWindows()
-    '''
+    
     if crop == 0:
         crop_ = ""
     else:
@@ -521,19 +529,19 @@ def process_video(video, crop):
 
 if __name__ == '__main__':
     crop = 0
-    print(f"{str(crop)} crop revserse")
+    print(f"{str(crop)} crop")
     split_file = []
     # s = open('list/ucf-train.list', 'r')
-    s = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/pretrain/ucf-label-i3d_svr3_Train.list', 'r')
-    for line in s:
-        line = line.strip()
-        line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-        split_file.append(line)
-    s25 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/label_25/ucf-label-i3d_Train.list', 'r')
-    for line in s25:
-        line = line.strip()
-        line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-        split_file.append(line)
+    # s = open('list/KD/pretrain/ucf-label-i3d_Train.list', 'r')
+    # for line in s:
+    #     line = line.strip()
+    #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
+    #     split_file.append(line)
+    # s25 = open('list/KD/label_25/ucf-label-i3d_Train.list', 'r')
+    # for line in s25:
+    #     line = line.strip()
+    #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
+    #     split_file.append(line)
     # un25 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/unlabel_25/ucf-unlabel-i3d.list', 'r')
     # for line in un25:
     #     line = line.strip()
@@ -549,29 +557,29 @@ if __name__ == '__main__':
     #     line = line.strip()
     #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
     #     split_file.append(line)
-    # ts = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/label_25/ucf-label-i3d_Test.list', 'r')
-    # for line in ts:
-    #     line = line.strip()
-    #     if "__" in line:
-    #         continue
-    #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    #     split_file.append(line)
+    ts = open('list/KD/label_25/ucf-label-i3d_Test.list', 'r')
+    for line in ts:
+        line = line.strip()
+        if "__" in line:
+            continue
+        line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
+        split_file.append(line)
 
     
-    split_file.reverse()
+    # split_file.reverse()
     vid_list = []
     
     for line in split_file:
-        mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
+        mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
         state = "Train"
         if "Testing" in line.split()[0]:
             state = "Test"
-            mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
+            mp4_path = "/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
         video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
         
         # 파일 이름에 video_name이 포함되어 있는지 확인
         video_name = video_path.split('/')[-2]+'/'+video_path.split('/')[-1].split(".")[0]
-        path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np3/{video_name.split('/')[0]}/"
+        path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
         if os.path.exists(path) == False:
             os.makedirs(path)
         # name이 포함된 파일 리스트
@@ -600,7 +608,8 @@ if __name__ == '__main__':
         if no_add == False:
             vid_list.append(video_path)
         
-    for q in range(len(vid_list)):
-        video = vid_list[q]
-        print(q,"/",len(vid_list),end="\r")
-        process_video(video, crop)   
+    # for q in range(len(vid_list)):
+    #     video = vid_list[q]
+    #     print(q,"/",len(vid_list),end="\r")
+    #     process_video(video, crop)   
+    process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', 0)
