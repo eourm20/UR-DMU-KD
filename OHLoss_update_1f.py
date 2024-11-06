@@ -405,95 +405,99 @@ def process_video(video, crop):
     weight = 0.1
     ohloss_results = {}
     ohloss_results[crop] = []
+    OHLoss = []
     frame_count = 0
     while video_cap.isOpened():
         ret, frame = video_cap.read()
         if ret:
-            
-            if frame_count % 16 == 0 and frame_count != 0:
-                # 배치 데이터 오버샘플링
-                data = load_frame_cv2(frame)
-                oversampled_data = oversample_data_single_img(data)
-                crop_frame = oversampled_data[crop][0][0]
-                keypoints = pose_model.get_pose(crop_frame)
-                '''
-                # 시각화
-                keypoints, vis_keypoints = pose_model.get_pose(crop_frame)
-                '''
-                if len(keypoints) > 1:
-                    '''
-                    # 시각화
-                    ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
-                    person_colors = [colors[label] for label in labels]
-                    person_colors = convert_to_bgr(person_colors)
-                    '''
-                    ohloss = cluster_keypoints_with_loss(keypoints)
-                    ohloss = ohloss * weight
-                    # 소수점 3째 자리까지 반올림
-                    ohloss = round(ohloss, 3)
-                    ohloss_results[crop].append(ohloss)
-                    '''
-                    # 시각화
-                    for k in range(len(vis_keypoints)):
-                        person = vis_keypoints[k]
-                        for kp in person:
-                            cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, person_colors[k], -1)
-                    '''
-                else:
-                    ohloss = 0 * weight
-                    ohloss_results[crop].append(ohloss)
-                    '''
-                    # 시각화
-                    if len(vis_keypoints)==1:
-                        person = vis_keypoints[0]
-                        for kp in person:
-                            cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
-                    '''
-                '''
-                # 시각화
-                if os.path.exists('plot_frame.png'):
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
-                else:
-                    plt.title('Clustered Keypoints')
-                    plt.xlabel('Dimension 1')
-                    plt.ylabel('Dimension 2')
-                    plt.xlim(-5, 5)
-                    plt.ylim(-5, 5)
-                    plt.savefig('plot_frame.png')
-                    plt.close()
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
-                # 필요하다면 plot_image의 크기를 조정
-                plot_image_resized = cv2.resize(plot_image, (crop_frame.shape[1], crop_frame.shape[0]))
+            data = load_frame_cv2(frame)
+            oversampled_data = oversample_data_single_img(data)
+            crop_frame = oversampled_data[crop][0][0]
+            keypoints = pose_model.get_pose(crop_frame)
+            '''
+            # 시각화
+            keypoints, vis_keypoints = pose_model.get_pose(crop_frame)
+            '''
 
-                # 프레임과 플롯 이미지를 수평으로 결합
-                combined_frame = np.hstack((crop_frame, plot_image_resized))
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                org = (50, 50)
-                fontScale = 1
-                colors = (255, 0, 0)
-                thickness = 2
-                cv2.putText(combined_frame, 'OHLoss: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
+            if len(keypoints) > 1:
+                '''
+                # 시각화
+                ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
+                person_colors = [colors[label] for label in labels]
+                person_colors = convert_to_bgr(person_colors)
+                '''
+                ohloss = cluster_keypoints_with_loss(keypoints)
+                ohloss = ohloss * weight
+                # 소수점 3째 자리까지 반올림
+                ohloss = round(ohloss, 3)
+                '''
+                # 시각화
+                for k in range(len(vis_keypoints)):
+                    person = vis_keypoints[k]
+                    for kp in person:
+                        cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, person_colors[k], -1)
+                '''
+            else:
+                ohloss = 0 * weight
+                '''
+                # 시각화
+                if len(vis_keypoints)==1:
+                    person = vis_keypoints[0]
+                    for kp in person:
+                        cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
+                '''
+            OHLoss.append(ohloss)
                 
-                figsize = (crop_frame.shape[1]*2//50, (crop_frame.shape[0])//50)
-                fig, ax = plt.subplots(figsize=figsize)
-                ax.set_ylim(0, 1)
-                ax.set_xlim(0, np_frame.shape[0])
-                ax.plot(ohloss_results[crop])
-                ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
-                ax.set_xlabel('Time')
-                ax.set_ylabel('OHLoss')
-                ax.set_title('OHLoss Over Time')
-                fig.canvas.draw()
-                
-                plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-                plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-                plt.close(fig)
-                plot_img_resized = cv2.resize(plot_img_np,  (crop_frame.shape[1]*2, crop_frame.shape[0]-50))
-                combined_frame = np.vstack((combined_frame, plot_img_resized))
-                out.write(combined_frame)
-                cv2.imshow(f'Frame - Crop {crop}', combined_frame)
+            if frame_count % 16 == 0 and frame_count != 0:
+                fps_OHLoss = sum(OHLoss[i]) / len(OHLoss[i])
+                ohloss_results[crop].append(fps_OHLoss)
+                OHLoss = []
+
+            '''
+            # 시각화
+            if os.path.exists('plot_frame.png'):
+                plot_image = cv2.imread('plot_frame.png')
+                os.remove('plot_frame.png')
+            else:
+                plt.title('Clustered Keypoints')
+                plt.xlabel('Dimension 1')
+                plt.ylabel('Dimension 2')
+                plt.xlim(-5, 5)
+                plt.ylim(-5, 5)
+                plt.savefig('plot_frame.png')
+                plt.close()
+                plot_image = cv2.imread('plot_frame.png')
+                os.remove('plot_frame.png')
+            # 필요하다면 plot_image의 크기를 조정
+            plot_image_resized = cv2.resize(plot_image, (crop_frame.shape[1], crop_frame.shape[0]))
+
+            # 프레임과 플롯 이미지를 수평으로 결합
+            combined_frame = np.hstack((crop_frame, plot_image_resized))
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            org = (50, 50)
+            fontScale = 1
+            colors = (255, 0, 0)
+            thickness = 2
+            cv2.putText(combined_frame, 'OHLoss: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
+            
+            figsize = (crop_frame.shape[1]*2//50, (crop_frame.shape[0])//50)
+            fig, ax = plt.subplots(figsize=figsize)
+            ax.set_ylim(0, 1)
+            ax.set_xlim(0, np_frame.shape[0])
+            ax.plot(ohloss_results[crop])
+            ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
+            ax.set_xlabel('Time')
+            ax.set_ylabel('OHLoss')
+            ax.set_title('OHLoss Over Time')
+            fig.canvas.draw()
+            
+            plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
+            plot_img_np = plot_img_np.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            plt.close(fig)
+            plot_img_resized = cv2.resize(plot_img_np,  (crop_frame.shape[1]*2, crop_frame.shape[0]-50))
+            combined_frame = np.vstack((combined_frame, plot_img_resized))
+            out.write(combined_frame)
+            cv2.imshow(f'Frame - Crop {crop}', combined_frame)
                 
             key = cv2.waitKey(25)
             if key == ord('q'):
