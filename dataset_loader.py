@@ -13,7 +13,10 @@ class UCF_crime(data.DataLoader):
         self.modal = modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        split_path = os.path.join('list','KD/label_25/ucf-label-i3d_{}.list'.format(self.mode))
+        if self.mode == 'Train':
+            split_path = os.path.join('list','UCF_{}_center.list'.format(self.mode))
+        else:
+            split_path = os.path.join('list','UCF_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
 
@@ -26,19 +29,20 @@ class UCF_crime(data.DataLoader):
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
-                self.vid_list = self.vid_list[104:]
-                self.oh_att_list = self.oh_att_list[104:]
-                self.tf_att_list = self.tf_att_list[104:]
+                self.vid_list = self.vid_list[810:]
+                self.oh_att_list = self.oh_att_list[810:]
+                self.tf_att_list = self.tf_att_list[810:]
             elif is_normal is False:
-                self.vid_list = self.vid_list[:104]
-                self.oh_att_list = self.oh_att_list[:104]
-                self.tf_att_list = self.tf_att_list[:104]
+                self.vid_list = self.vid_list[:810]
+                self.oh_att_list = self.oh_att_list[:810]
+                self.tf_att_list = self.tf_att_list[:810]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal=[True/False]")
                 self.vid_list=[]
                 self.oh_att_list=[]
                 self.tf_att_list=[]
+
     def __len__(self):
         return len(self.vid_list)
 
@@ -53,25 +57,26 @@ class UCF_crime(data.DataLoader):
 
     def get_data(self, index):
         vid_info = self.vid_list[index][0]
-        oh_att_info = self.oh_att_list[index][0]
-        tf_att_info = self.tf_att_list[index][0]
         name = vid_info.split("/")[-1].split("_x264")[0]
         video_feature = np.load(vid_info).astype(np.float32)
-        oh_att = np.load(oh_att_info).astype(np.float32)
-        tf_att = np.load(tf_att_info).astype(np.float32)
-        #ohloss와 tfloss의 길이가 다를 수 있음
-        if len(oh_att) != len(video_feature):
-            # ohloss의 마지막 값으로 채움
-            oh_att = np.concatenate([oh_att, np.repeat(oh_att[-1], len(video_feature) - len(oh_att))])
-        if len(tf_att) != len(video_feature):
-            # tfloss의 마지막 값으로 채움
-            tf_att = np.concatenate([tf_att, np.repeat(tf_att[-1], len(video_feature) - len(tf_att))])
-        
+
         if "Normal" in vid_info.split("/")[-1]:
             label = 0
         else:
             label = 1
         if self.mode == "Train":
+            oh_att_info = self.oh_att_list[index][0]
+            tf_att_info = self.tf_att_list[index][0]
+            oh_att = np.load(oh_att_info).astype(np.float32)
+            tf_att = np.load(tf_att_info).astype(np.float32)
+            #ohloss와 tfloss의 길이가 다를 수 있음
+            if len(oh_att) != len(video_feature):
+                # ohloss의 마지막 값으로 채움
+                oh_att = np.concatenate([oh_att, np.repeat(oh_att[-1], len(video_feature) - len(oh_att))])
+            if len(tf_att) != len(video_feature):
+                # tfloss의 마지막 값으로 채움
+                tf_att = np.concatenate([tf_att, np.repeat(tf_att[-1], len(video_feature) - len(tf_att))])
+            
             new_feat = np.zeros((self.num_segments, video_feature.shape[1])).astype(np.float32)
             new_oh_att = np.zeros((self.num_segments, )).astype(np.float32)
             new_tf_att = np.zeros((self.num_segments, )).astype(np.float32)
@@ -90,7 +95,7 @@ class UCF_crime(data.DataLoader):
             tf_att = new_tf_att
             
         if self.mode == "Test":
-            return video_feature, label, name, oh_att, tf_att      
+            return video_feature, label, name, [], []      
         else:
             return video_feature, label, oh_att, tf_att
 
