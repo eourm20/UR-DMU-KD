@@ -238,4 +238,4 @@ dependencies:
       - yarl==1.9.4
       - yq==3.4.3
       - zipp==3.18.1
-prefix: /home/subin-oh/anaconda3/envs/WVAD
+prefix: /home/sb-oh/anaconda3/envs/WVAD

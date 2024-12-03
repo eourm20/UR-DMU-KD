@@ -16,7 +16,8 @@ class UCF_crime(data.DataLoader):
         if self.mode == 'Train':
             split_path = os.path.join('list','UCF_{}_center_svr3.list'.format(self.mode))
         elif self.mode == 'Test':
-            split_path = os.path.join('list','UCF_{}_svr3.list'.format(self.mode))
+            # split_path = os.path.join('list','UCF_{}_svr3.list'.format(self.mode))
+            split_path = os.path.join('list','KD/pretrain/ucf-label-i3d_svr3_{}.list'.format(self.mode))
         split_file = open(split_path, 'r')
         self.vid_list = []
 
