@@ -296,15 +296,16 @@ def process_video(video, crop):
     for line in list:
         if name in line:
             crop_check.append(line)
-    if crop == 0:
-        for crop_name in crop_check:
-            if '__' not in crop_name:
-                return
-    elif crop == 1:
-        for crop_name in crop_check:
-            if '__' in crop_name:
-                if int(crop_name.split('__')[-1].split('.')[0]) == 5:
-                    return
+            return
+    # if crop == 0:
+    #     for crop_name in crop_check:
+    #         if '__' not in crop_name:
+    #             return
+    # elif crop == 1:
+    #     for crop_name in crop_check:
+    #         if '__' in crop_name:
+    #             if int(crop_name.split('__')[-1].split('.')[0]) == 5:
+    #                 return
     
     video_cap = cv2.VideoCapture(video)
     if not video_cap.isOpened():
@@ -337,9 +338,9 @@ def process_video(video, crop):
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
-    out = cv2.VideoWriter(f'tfloss_vis/XD/{video_name}_16f_W0_01.mp4', fourcc, fps, (448, 398))
+    out = cv2.VideoWriter(f'tfloss_vis/XD/{video_name}_16f_W0_001.mp4', fourcc, fps, (448, 398))
     '''
-    weight = 0.01
+    weight = 0.001
     tfloss_results = {}
     previous_keypoints = {}
     curr_keypoints = {}
@@ -495,34 +496,36 @@ if __name__ == '__main__':
     # split_file.reverse()
     vid_list = []
     
+    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
+    if os.path.exists(path) == False:
+        os.makedirs(path)
+    list = os.listdir(path)
+    
     for video_name in split_file:
         # 파일 이름에 video_name이 포함되어 있는지 확인
         video_path = '/home/sb-oh/Nas-subin/SB-Oh/data/XD-Violence/Train/'+video_name+'.mp4'
-        path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACD/"
-        if os.path.exists(path) == False:
-            os.makedirs(path)
         # name이 포함된 파일 리스트
         name = video_name
-        list = os.listdir(path)
         # crop_num=[]
         crop_check=[]
         no_add = False
-        for line in list:
-            if name in line:
-                crop_check.append(line)
+        for li in list:
+            if name in li:
+                crop_check.append(li)
+                no_add = True
 
-        if crop == 0:
-            for crop_name in crop_check:
-                if '__' not in crop_name:
-                    no_add = True
-                    break
-        elif crop == 1:
-            for crop_name in crop_check:
-                if '__' in crop_name:
-                    if int(crop_name.split('__')[-1].split('.')[0]) == 5:
-                        # crop_num.append(0)
-                        no_add = True
-                        break
+        # if crop == 0:
+        #     for crop_name in crop_check:
+        #         if '__' not in crop_name:
+        #             no_add = True
+        #             break
+        # elif crop == 1:
+        #     for crop_name in crop_check:
+        #         if '__' in crop_name:
+        #             if int(crop_name.split('__')[-1].split('.')[0]) == 5:
+        #                 # crop_num.append(0)
+        #                 no_add = True
+        #                 break
                 
         if no_add == False:
             vid_list.append(video_path)
