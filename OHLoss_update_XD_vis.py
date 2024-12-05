@@ -102,7 +102,7 @@ def find_optimal_clusters(data):
     optimal_clusters = iters[np.argmax(dunn_scores)]
     return optimal_clusters
 
-'''
+
 # 시각화
 def plot_clusters(keypoints_flattened, labels, centers):
     """
@@ -131,7 +131,7 @@ def plot_clusters(keypoints_flattened, labels, centers):
     plt.close()
     
     return colors
-'''
+
 def cluster_keypoints_with_loss(keypoints):
     """
     키포인트 데이터를 클러스터링하고, 로스 함수를 계산하는 함수
@@ -148,11 +148,11 @@ def cluster_keypoints_with_loss(keypoints):
     try:
         keypoints_2d = pca.fit_transform(keypoints_flattened)
     except:
-        return 0
-        '''
+        # return 0
+        
         # 시각화
         return 0, colors, labels
-        '''
+        
     # 최적의 클러스터 수 찾기
     optimal_clusters = find_optimal_clusters(keypoints_2d)
     
@@ -163,16 +163,16 @@ def cluster_keypoints_with_loss(keypoints):
     # 각 사람이 속한 클러스터의 인덱스 및 클러스터 중심점 계산
     labels = kmeans.labels_
     centers = kmeans.cluster_centers_
-    '''
+    
     # 시각화
     colors = plot_clusters(keypoints_2d, labels, centers)
-    '''
+    
     if optimal_clusters == 1:
-        return 0
-        '''
+        # return 0
+        
         # 시각화
         return 0, colors, labels
-        '''
+        
     cluster_counts = np.bincount(labels)
     
     # 가장 적은 인원을 가진 클러스터들의 인덱스와 그 인원 수 확인
@@ -205,11 +205,11 @@ def cluster_keypoints_with_loss(keypoints):
         final_loss += np.linalg.norm(center - centers[abnormal_cluster])
     
     # 평균 로스 반환    
-    return final_loss*(np.max(cluster_counts)) / len(centers)
-    '''
+    # return final_loss*(np.max(cluster_counts)) / len(centers)
+    
     # 시각화
     return final_loss*(np.max(cluster_counts)) / len(centers), colors, labels
-    '''
+    
     # # Dunn 지수 계산
     # dunn = dunn_index(keypoints_2d, labels, centers)
     # # 같은 행동을 하는 사람들이 많은 경우 소수의 클러스터는 이상
@@ -241,11 +241,11 @@ class Detectron2Pose:
                 # [x,y,신뢰도]
                 if len(keypoints_predictions) == 0:
                     # print('No person detected')
-                    return filtered_person
-                    '''
+                    # return filtered_person
+                    
                     # 시각화
                     return filtered_person, vis_person
-                    '''
+                    
                 else:
                     # 필터링할 keypoint 인덱스, COCO index는 0부터 시작하므로 1을 빼줍니다.
                     indices = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -275,27 +275,27 @@ class Detectron2Pose:
                             # 각 keypoint 사이의 최대 거리를 계산
                             max_distance = torch.max(torch.cdist(relative_keypoints, relative_keypoints, p=2))
                             normalized_keypoints = relative_keypoints / max_distance  # 모든 위치값을 최대 거리로 나눔
-                            '''
+                            
                             # 시각화
                             vis_person.append(keypoints_xy)
-                            '''
+                            
                             filtered_person.append(normalized_keypoints)
                     if len(filtered_person) <= 1:
                         # print('No person detected with high confidence keypoints')
                         # filtered_person = np.zeros((13, 3))
                         
-                        return filtered_person
-                        '''
+                        # return filtered_person
+                        
                         # 시각화
                         return filtered_person, vis_person
-                        '''
+                        
                     else:
                         filtered_person = torch.stack(filtered_person, dim=0)
-                        return filtered_person
-                        '''
+                        # return filtered_person
+                        
                         # 시각화
                         return filtered_person, vis_person
-                        '''
+                        
                     
                 
     def normalize(self, frame):
@@ -382,7 +382,7 @@ def process_video(video, crop):
     if not video_cap.isOpened():
         print("Error opening video file")
         return
-    '''
+    
     # 시각화
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     total_frame = video_cap.get(cv2.CAP_PROP_FRAME_COUNT)
@@ -410,7 +410,6 @@ def process_video(video, crop):
     height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
     out = cv2.VideoWriter(f'ohloss_vis/XD/{video_name}_16f_W0_2.mp4', fourcc, fps, (448, 398))
     # print(width, height)
-    '''
     
     weight = 0.2
     ohloss_results = {}
@@ -434,40 +433,41 @@ def process_video(video, crop):
                 # crop_frame = cv2.copyMakeBorder(crop_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
 
                 keypoints = pose_model.get_pose(crop_frame)
-                '''
+                
+                # crop_frame = data
                 # 시각화
                 keypoints, vis_keypoints = pose_model.get_pose(crop_frame)
-                '''
+                
                 if len(keypoints) > 1:
                     
-                    # # 시각화
-                    # ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
-                    # person_colors = [colors[label] for label in labels]
-                    # person_colors = convert_to_bgr(person_colors)
+                    # 시각화
+                    ohloss, colors, labels = cluster_keypoints_with_loss(keypoints)
+                    person_colors = [colors[label] for label in labels]
+                    person_colors = convert_to_bgr(person_colors)
                     
-                    ohloss = cluster_keypoints_with_loss(keypoints)
+                    # ohloss = cluster_keypoints_with_loss(keypoints)
                     ohloss = ohloss * weight
                     # 소수점 3째 자리까지 반올림
                     ohloss = round(ohloss, 3)
                     ohloss_results[crop].append(ohloss)
-                    '''
+                    
                     # 시각화
                     for k in range(len(vis_keypoints)):
                         person = vis_keypoints[k]
                         for kp in person:
                             cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, person_colors[k], -1)
-                    '''
+                    
                 else:
                     ohloss = 0 * weight
                     ohloss_results[crop].append(ohloss)
-                    '''
+                    
                     # 시각화
                     if len(vis_keypoints)==1:
                         person = vis_keypoints[0]
                         for kp in person:
                             cv2.circle(crop_frame, (int(kp[0]), int(kp[1])), 3, (0, 0, 255), -1)
-                    '''
-                '''
+                    
+                
                 # 시각화
                 if os.path.exists('plot_frame2.png'):
                     plot_image = cv2.imread('plot_frame2.png')
@@ -522,16 +522,16 @@ def process_video(video, crop):
             key = cv2.waitKey(25)
             if key == ord('q'):
                 break
-            '''
+            
             frame_count += 1
         else:
             break
     video_cap.release()
-    '''
+    
     # 시각화
     out.release()
     cv2.destroyAllWindows()
-    '''
+    
     if crop == 0:
         crop_ = ""
     else:
@@ -623,4 +623,4 @@ if __name__ == '__main__':
         
     '''
     # process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', 0)
-    # process_video('/home/subin-oh/Nas-subin/SB-Oh/data/XD-Violence/Test/videos/Bullet.in.the.Head.1990__#01-26-30_01-27-34_label_B2-0-0.mp4', 0)
+    process_video('/home/subin-oh/Nas-subin/SB-Oh/data/XD-Violence/Test/videos/Bullet.in.the.Head.1990__#01-26-30_01-27-34_label_B2-0-0.mp4', 0)
