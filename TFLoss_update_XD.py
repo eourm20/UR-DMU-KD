@@ -286,7 +286,7 @@ def process_video(video, crop):
     # video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     video_name = video.split('/')[-1].split(".mp4")[0]
     # 파일 이름에 video_name이 포함되어 있는지 확인
-    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
+    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     # name이 포함된 파일 리스트
@@ -485,19 +485,20 @@ if __name__ == '__main__':
     print(f"{str(crop)} crop")
     split_file = []
     # s = open('list/ucf-train.list', 'r')
-    s = open('/home/subin-oh/code/WVED_1101/main/UR-DMU-KD/list/XD_Train.list', 'r')
+    s = open('/home/sb-oh/WVAD/UR-DMU-KD/list/XD_Train_center.list', 'r')
     for line in s:
         line = line.strip()
+        line = line.split('/')[-1].split("__0")[0]
         split_file.append(line)
 
     
     # split_file.reverse()
     vid_list = []
     
-    for video_path in split_file:
+    for video_name in split_file:
         # 파일 이름에 video_name이 포함되어 있는지 확인
-        video_name = line.split('/')[-1].split(".mp4")[0]
-        path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
+        video_path = '/home/sb-oh/Nas-subin/SB-Oh/data/XD-Violence/Train/'+video_name+'.mp4'
+        path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACD/"
         if os.path.exists(path) == False:
             os.makedirs(path)
         # name이 포함된 파일 리스트
