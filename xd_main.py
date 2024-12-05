@@ -7,10 +7,14 @@ from config import *
 from train import *
 from xd_test import test
 from model import *
-from utils import Visualizer
-
+import clearml
+from clearml import Task
+import os
 from dataset_loader import *
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 
 if __name__ == "__main__":
     args = parse_args()
@@ -23,6 +27,7 @@ if __name__ == "__main__":
         torch.cuda.set_device(0)
 
     config.len_feature = 1024
+    task_logger = None
     net = WSAD(config.len_feature,flag = "Train", a_nums = 60, n_nums = 60)
     net = net.cuda()
 
@@ -67,14 +72,14 @@ if __name__ == "__main__":
 
         if (step - 1) % len(abnormal_train_loader) == 0:
             abnormal_loader_iter = iter(abnormal_train_loader)
-        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, step)
+        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, task_logger, step)
         # early stopping 20번동안 best auc가 갱신되지 않으면 종료
         test(net, config, test_loader, test_info, step)
         if test_info["auc"][-1] > best_auc:
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "ALL2_best_record.txt"))
+                os.path.join(config.output_path, "XD_ALL_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:
