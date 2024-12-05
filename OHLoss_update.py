@@ -111,20 +111,23 @@ def plot_clusters(keypoints_flattened, labels, centers):
     labels: 각 데이터 포인트의 클러스터 레이블 배열
     centers: 클러스터 중심점 배열
     """
+    plt.figure(figsize=(2.24, 2.24))
     colors = plt.cm.rainbow(np.linspace(0, 1, len(centers)))
     # 각 데이터 포인트를 해당 클러스터 색상으로 플롯
     for i in range(len(centers)):
         cluster_points = keypoints_flattened[labels == i]
-        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=colors[i], label=f'Cluster {i+1}')
-        plt.scatter(centers[i, 0], centers[i, 1], color=colors[i], marker='x', s=200)
-    
-    plt.title('Clustered Keypoints')
-    plt.xlabel('Dimension 1')
-    plt.ylabel('Dimension 2')
-    plt.legend()
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=colors[i], label=f'Cluster {i+1}', s=10)
+        plt.scatter(centers[i, 0], centers[i, 1], color=colors[i], marker='x', s=50)
+     # x, y축 숫자 크기 조정
+    plt.tick_params(axis='both', labelsize=6)  # 숫자 크기 조정
+    plt.title('Clustered Keypoints', fontsize=10)
+    plt.xlabel('Dimension 1', fontsize=6)
+    plt.ylabel('Dimension 2', fontsize=6)
+    # plt.legend(fontsize=6)
     plt.xlim(-5, 5)
     plt.ylim(-5, 5)
-    plt.savefig('plot_frame.png')
+    plt.tight_layout()
+    plt.savefig('plot_frame2.png')
     plt.close()
     
     return colors
@@ -354,25 +357,25 @@ def process_video(video, crop):
     video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     
     # 파일 이름에 video_name이 포함되어 있는지 확인
-    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
-    if os.path.exists(path) == False:
-        os.makedirs(path)
-    # name이 포함된 파일 리스트
-    name = video_name.split('/')[1]
-    list = os.listdir(path)
-    crop_check=[]
-    for line in list:
-        if name in line:
-            crop_check.append(line)
-    if crop == 0:
-        for crop_name in crop_check:
-            if '__' not in crop_name:
-                return
-    elif crop == 1:
-        for crop_name in crop_check:
-            if '__' in crop_name:
-                if int(crop_name.split('__')[-1].split('.')[0]) == 5:
-                    return
+    # path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
+    # if os.path.exists(path) == False:
+    #     os.makedirs(path)
+    # # name이 포함된 파일 리스트
+    # name = video_name.split('/')[1]
+    # list = os.listdir(path)
+    # crop_check=[]
+    # for line in list:
+    #     if name in line:
+    #         crop_check.append(line)
+    # if crop == 0:
+    #     for crop_name in crop_check:
+    #         if '__' not in crop_name:
+    #             return
+    # elif crop == 1:
+    #     for crop_name in crop_check:
+    #         if '__' in crop_name:
+    #             if int(crop_name.split('__')[-1].split('.')[0]) == 5:
+    #                 return
     
     video_cap = cv2.VideoCapture(video)
     if not video_cap.isOpened():
@@ -404,7 +407,7 @@ def process_video(video, crop):
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
-    out = cv2.VideoWriter(f'ohloss_vis/{video_name.split("/")[1]}_16f_W0_2_padding.mp4', fourcc, fps, (448, 398))
+    out = cv2.VideoWriter(f'ohloss_vis/NEW/{video_name.split("/")[1]}_16f_W0_2.mp4', fourcc, fps, (448, 398))
     # print(width, height)
     
     weight = 0.2
@@ -422,11 +425,11 @@ def process_video(video, crop):
                 crop_frame = oversampled_data[crop][0][0]
                 #crop_frame에 패딩값을 설정
                 # crop_frame에 패딩을 추가하는 예시
-                top, bottom, left, right = 10, 10, 10, 10  # 패딩 값 설정 (위, 아래, 왼쪽, 오른쪽)
-                pad_color = [0, 0, 0]  # 패딩 색상 (검정색)
+                # top, bottom, left, right = 10, 10, 10, 10  # 패딩 값 설정 (위, 아래, 왼쪽, 오른쪽)
+                # pad_color = [0, 0, 0]  # 패딩 색상 (검정색)
 
                 # 패딩 추가
-                crop_frame = cv2.copyMakeBorder(crop_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
+                # crop_frame = cv2.copyMakeBorder(crop_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
 
                 keypoints = pose_model.get_pose(crop_frame)
                 
@@ -465,40 +468,45 @@ def process_video(video, crop):
                     
                 
                 # 시각화
-                if os.path.exists('plot_frame.png'):
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
+                if os.path.exists('plot_frame2.png'):
+                    plot_image = cv2.imread('plot_frame2.png')
+                    os.remove('plot_frame2.png')
                 else:
-                    plt.title('Clustered Keypoints')
-                    plt.xlabel('Dimension 1')
-                    plt.ylabel('Dimension 2')
+                    plt.figure(figsize=(2.24, 2.24))
+                    # x, y축 숫자 크기 조정
+                    plt.tick_params(axis='both', labelsize=6)  # 숫자 크기 조정
+                    plt.title('Clustered Keypoints', fontsize=10)
+                    plt.xlabel('Dimension 1', fontsize=6)
+                    plt.ylabel('Dimension 2', fontsize=6)
                     plt.xlim(-5, 5)
                     plt.ylim(-5, 5)
-                    plt.savefig('plot_frame.png')
+                    plt.tight_layout()
+                    plt.savefig('plot_frame2.png')
                     plt.close()
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
+                    plot_image = cv2.imread('plot_frame2.png')
+                    os.remove('plot_frame2.png')
                 # 필요하다면 plot_image의 크기를 조정
                 plot_image_resized = cv2.resize(plot_image, (crop_frame.shape[1], crop_frame.shape[0]))
 
                 # 프레임과 플롯 이미지를 수평으로 결합
                 combined_frame = np.hstack((crop_frame, plot_image_resized))
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                org = (50, 50)
+                org = (10, 50)
                 fontScale = 1
                 colors = (255, 0, 0)
                 thickness = 2
                 cv2.putText(combined_frame, 'OHLoss: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
                 
-                figsize = (crop_frame.shape[1]*2//50, (crop_frame.shape[0])//50)
+                figsize = (crop_frame.shape[1]*2/100, ((crop_frame.shape[0])-50)/100)
                 fig, ax = plt.subplots(figsize=figsize)
                 ax.set_ylim(0, 1)
                 ax.set_xlim(0, np_frame.shape[0])
                 ax.plot(ohloss_results[crop])
                 ax.axvspan(abnormals[0]//16, abnormals[1]//16, color='red', alpha=0.2)
-                ax.set_xlabel('Time')
-                ax.set_ylabel('OHLoss')
-                ax.set_title('OHLoss Over Time')
+                # ax.set_xlabel('Time')
+                # ax.set_ylabel('OHLoss')
+                ax.set_title('Action Clustering Distance Loss', fontsize=10)
+                plt.tight_layout()
                 fig.canvas.draw()
                 
                 plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
@@ -527,7 +535,7 @@ def process_video(video, crop):
     else:
         crop_ = "__5"
     
-    np.save(f"{path}{name}{crop_}.npy", ohloss_results[crop])
+    # np.save(f"{path}{name}{crop_}.npy", ohloss_results[crop])
 
 if __name__ == '__main__':
     crop = 0
@@ -614,4 +622,33 @@ if __name__ == '__main__':
     #     video = vid_list[q]
     #     print(q,"/",len(vid_list),end="\r")
     #     process_video(video, crop)   
-    process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', 0)
+    annotation_abnormal = open(f"/home/subin-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
+    test =[]
+    for line in annotation_abnormal:
+        file = line.split(" ")[0]
+        if 'Normal' in file:
+            path_file = '/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test/'+file
+        else:
+            path_file = '/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/'+file
+        mp4 = file.split("/")[1].split('.')[0]
+        mp4 = f'{mp4}_16f_W0_2.mp4'
+        if mp4 in os.listdir('ohloss_vis/NEW'):
+            continue
+        test.append(path_file)
+    # test_list = ['Abuse/Abuse030_x264.mp4',
+    #              'Arrest/Arrest024_x264.mp4',
+    #              'Arson/Arson016_x264.mp4',
+    #              'Assault/Assault011_x264.mp4',
+    #              'Burglary/Burglary079_x264.mp4',
+    #              'Explosion/Explosion017_x264.mp4',
+    #              'Fighting/Fighting018_x264.mp4',
+    #              'RoadAccidents/RoadAccidents002_x264.mp4',
+    #              'Robbery/Robbery106_x264.mp4',
+    #              'Shooting/Shooting048_x264.mp4',
+    #              'Shoplifting/Shoplifting031_x264.mp4',
+    #              'Stealing/Stealing036_x264.mp4',
+    #              'Vandalism/Vandalism036_x264.mp4']
+    for video in test:
+        print(video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0])
+        process_video(video, 0)
+    # process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', 0)
