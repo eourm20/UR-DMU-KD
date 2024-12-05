@@ -111,20 +111,23 @@ def plot_clusters(keypoints_flattened, labels, centers):
     labels: 각 데이터 포인트의 클러스터 레이블 배열
     centers: 클러스터 중심점 배열
     """
+    plt.figure(figsize=(2.24, 2.24))
     colors = plt.cm.rainbow(np.linspace(0, 1, len(centers)))
     # 각 데이터 포인트를 해당 클러스터 색상으로 플롯
     for i in range(len(centers)):
         cluster_points = keypoints_flattened[labels == i]
-        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=colors[i], label=f'Cluster {i+1}')
-        plt.scatter(centers[i, 0], centers[i, 1], color=colors[i], marker='x', s=200)
-    
-    plt.title('Clustered Keypoints')
-    plt.xlabel('Dimension 1')
-    plt.ylabel('Dimension 2')
-    plt.legend()
+        plt.scatter(cluster_points[:, 0], cluster_points[:, 1], color=colors[i], label=f'Cluster {i+1}', s=10)
+        plt.scatter(centers[i, 0], centers[i, 1], color=colors[i], marker='x', s=50)
+     # x, y축 숫자 크기 조정
+    plt.tick_params(axis='both', labelsize=6)  # 숫자 크기 조정
+    plt.title('Clustered Keypoints', fontsize=10)
+    plt.xlabel('Dimension 1', fontsize=6)
+    plt.ylabel('Dimension 2', fontsize=6)
+    # plt.legend(fontsize=6)
     plt.xlim(-5, 5)
     plt.ylim(-5, 5)
-    plt.savefig('plot_frame.png')
+    plt.tight_layout()
+    plt.savefig('plot_frame2.png')
     plt.close()
     
     return colors
@@ -261,7 +264,7 @@ class Detectron2Pose:
                     for keypoints in keypoints_predictions:
                         # 신뢰도가 0.8 이상인 keypoint만 선택
                         keypoints = keypoints[indices]
-                        # 모든 키포인트의 신뢰도가 0.06 이상인지 확인
+                        # 모든 키포인트의 신뢰도가 0.8 이상인지 확인
                         if all(kp[2] >= 0.02 for kp in keypoints):
                             keypoints_xy = keypoints[:, :2]  # 첫 번째와 두 번째 요소(x, y)만 선택
                             center_point_indies = [0, 1, 6, 7] 
@@ -355,7 +358,7 @@ def process_video(video, crop):
     video_name = video.split('/')[-1].split(".mp4")[0]
     
     # 파일 이름에 video_name이 포함되어 있는지 확인
-    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np4/{video_name.split('/')[0]}/"
+    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/XD_ACD/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     # name이 포함된 파일 리스트
@@ -404,7 +407,7 @@ def process_video(video, crop):
     fps = video_cap.get(cv2.CAP_PROP_FPS)
     frame_count = int(video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
     height, width = int(video_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))*2-50, int(video_cap.get(cv2.CAP_PROP_FRAME_WIDTH))*2
-    out = cv2.VideoWriter(f'ohloss_vis/{video_name}_16f_W0_2_padding.mp4', fourcc, fps, (448, 398))
+    out = cv2.VideoWriter(f'ohloss_vis/XD/{video_name}_16f_W0_2.mp4', fourcc, fps, (448, 398))
     # print(width, height)
     
     weight = 0.2
@@ -425,7 +428,7 @@ def process_video(video, crop):
                 # top, bottom, left, right = 10, 10, 10, 10  # 패딩 값 설정 (위, 아래, 왼쪽, 오른쪽)
                 # pad_color = [0, 0, 0]  # 패딩 색상 (검정색)
 
-                # # 패딩 추가
+                # 패딩 추가
                 # crop_frame = cv2.copyMakeBorder(crop_frame, top, bottom, left, right, cv2.BORDER_CONSTANT, value=pad_color)
 
                 keypoints = pose_model.get_pose(crop_frame)
@@ -465,41 +468,46 @@ def process_video(video, crop):
                     
                 
                 # 시각화
-                if os.path.exists('plot_frame.png'):
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
+                if os.path.exists('plot_frame2.png'):
+                    plot_image = cv2.imread('plot_frame2.png')
+                    os.remove('plot_frame2.png')
                 else:
-                    plt.title('Clustered Keypoints')
-                    plt.xlabel('Dimension 1')
-                    plt.ylabel('Dimension 2')
+                    plt.figure(figsize=(2.24, 2.24))
+                    # x, y축 숫자 크기 조정
+                    plt.tick_params(axis='both', labelsize=6)  # 숫자 크기 조정
+                    plt.title('Clustered Keypoints', fontsize=10)
+                    plt.xlabel('Dimension 1', fontsize=6)
+                    plt.ylabel('Dimension 2', fontsize=6)
                     plt.xlim(-5, 5)
                     plt.ylim(-5, 5)
-                    plt.savefig('plot_frame.png')
+                    plt.tight_layout()
+                    plt.savefig('plot_frame2.png')
                     plt.close()
-                    plot_image = cv2.imread('plot_frame.png')
-                    os.remove('plot_frame.png')
+                    plot_image = cv2.imread('plot_frame2.png')
+                    os.remove('plot_frame2.png')
                 # 필요하다면 plot_image의 크기를 조정
                 plot_image_resized = cv2.resize(plot_image, (crop_frame.shape[1], crop_frame.shape[0]))
 
                 # 프레임과 플롯 이미지를 수평으로 결합
                 combined_frame = np.hstack((crop_frame, plot_image_resized))
                 font = cv2.FONT_HERSHEY_SIMPLEX
-                org = (50, 50)
+                org = (10, 50)
                 fontScale = 1
                 colors = (255, 0, 0)
                 thickness = 2
                 cv2.putText(combined_frame, 'ACD: {:.2f}'.format(ohloss), org, font, fontScale, colors, thickness, cv2.LINE_AA)
                 
-                figsize = (crop_frame.shape[1]*2//50, (crop_frame.shape[0])//50)
+                figsize = (crop_frame.shape[1]*2/100, ((crop_frame.shape[0])-50)/100)
                 fig, ax = plt.subplots(figsize=figsize)
                 ax.set_ylim(0, 1)
                 ax.set_xlim(0, np_frame.shape[0])
                 ax.plot(ohloss_results[crop])
                 for key in range(len(abnormals)//2):
                     ax.axvspan(int(abnormals[key])//16, int(abnormals[key+1])//16, color='red', alpha=0.2)
-                ax.set_xlabel('Time')
-                ax.set_ylabel('ACD')
-                ax.set_title('ACD Over Time')
+                # ax.set_xlabel('Time')
+                # ax.set_ylabel('OHLoss')
+                ax.set_title('Action Clustering Distance', fontsize=10)
+                plt.tight_layout()
                 fig.canvas.draw()
                 
                 plot_img_np = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
@@ -532,87 +540,86 @@ def process_video(video, crop):
 
 if __name__ == '__main__':
     crop = 0
-    print(f"{str(crop)} crop revserse")
-    # split_file = []
-    # # s = open('list/ucf-train.list', 'r')
-    # s = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/pretrain/ucf-label-i3d_svr3_Train.list', 'r')
-    # for line in s:
-    #     line = line.strip()
-    #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    #     split_file.append(line)
-    # s25 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/label_25/ucf-label-i3d_Train.list', 'r')
-    # for line in s25:
-    #     line = line.strip()
-    #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    #     split_file.append(line)
-    # # un25 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/unlabel_25/ucf-unlabel-i3d.list', 'r')
-    # # for line in un25:
-    # #     line = line.strip()
-    # #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    # #     split_file.append(line)
-    # # un50 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/unlabel_50/ucf-unlabel-i3d.list', 'r')
-    # # for line in un50:
-    # #     line = line.strip()
-    # #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    # #     split_file.append(line)
-    # # un75 = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/unlabel_75/ucf-unlabel-i3d.list', 'r')
-    # # for line in un75:
-    # #     line = line.strip()
-    # #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    # #     split_file.append(line)
-    # # ts = open('/home/sb-oh/WVED/UR-DMU/HPE/UR-DMU-KD/list/KD/label_25/ucf-label-i3d_Test.list', 'r')
-    # # for line in ts:
-    # #     line = line.strip()
-    # #     if "__" in line:
-    # #         continue
-    # #     line = line.split('/')[-2] + '/' + line.split('/')[-1].split('_x')[0]
-    # #     split_file.append(line)
+    print(f"{str(crop)} crop")
+    split_file = []
+    # s = open('list/ucf-train.list', 'r')
+    s = open('/home/subin-oh/code/WVED_1101/main/UR-DMU-KD/list/XD_Train.list', 'r')
+    for line in s:
+        line = line.strip()
+        split_file.append(line)
 
     
     # split_file.reverse()
-    # vid_list = []
+    vid_list = []
     
-    # for line in split_file:
-    #     mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train"
-    #     state = "Train"
-    #     if "Testing" in line.split()[0]:
-    #         state = "Test"
-    #         mp4_path = "/home/sb-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test"
-    #     video_path = os.path.join(mp4_path, line.split()[0]+"_x264.mp4")
-        
-    #     # 파일 이름에 video_name이 포함되어 있는지 확인
-    #     video_name = video_path.split('/')[-2]+'/'+video_path.split('/')[-1].split(".")[0]
-    #     path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/OHLoss_np3/{video_name.split('/')[0]}/"
-    #     if os.path.exists(path) == False:
-    #         os.makedirs(path)
-    #     # name이 포함된 파일 리스트
-    #     name = video_name.split('/')[1]
-    #     list = os.listdir(path)
-    #     # crop_num=[]
-    #     crop_check=[]
-    #     no_add = False
-    #     for line in list:
-    #         if name in line:
-    #             crop_check.append(line)
+    for video_path in split_file:
+        # 파일 이름에 video_name이 포함되어 있는지 확인
+        video_name = line.split('/')[-1].split(".mp4")[0]
+        path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACD/"
+        if os.path.exists(path) == False:
+            os.makedirs(path)
+        # name이 포함된 파일 리스트
+        name = video_name
+        list = os.listdir(path)
+        # crop_num=[]
+        crop_check=[]
+        no_add = False
+        for line in list:
+            if name in line:
+                crop_check.append(line)
 
-    #     if crop == 0:
-    #         for crop_name in crop_check:
-    #             if '__' not in crop_name:
-    #                 no_add = True
-    #                 break
-    #     elif crop == 1:
-    #         for crop_name in crop_check:
-    #             if '__' in crop_name:
-    #                 if int(crop_name.split('__')[-1].split('.')[0]) == 5:
-    #                     # crop_num.append(0)
-    #                     no_add = True
-    #                     break
+        if crop == 0:
+            for crop_name in crop_check:
+                if '__' not in crop_name:
+                    no_add = True
+                    break
+        elif crop == 1:
+            for crop_name in crop_check:
+                if '__' in crop_name:
+                    if int(crop_name.split('__')[-1].split('.')[0]) == 5:
+                        # crop_num.append(0)
+                        no_add = True
+                        break
                 
-    #     if no_add == False:
-    #         vid_list.append(video_path)
+        if no_add == False:
+            vid_list.append(video_path)
         
-    # for q in range(len(vid_list)):
-    #     video = vid_list[q]
-    #     print(q,"/",len(vid_list),end="\r")
-    #     process_video(video, crop)   
+    for q in range(len(vid_list)):
+        video = vid_list[q]
+        print(q,"/",len(vid_list),end="\r")
+        process_video(video, crop)   
+    
+    '''
+    annotation_abnormal = open(f"/home/subin-oh/code/WVED/HPE-Extract/UR-DMU-KD/list/UCF_Annotation.txt", 'r')
+    test =[]
+    for line in annotation_abnormal:
+        file = line.split(" ")[0]
+        if 'Normal' in file:
+            path_file = '/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Test/'+file
+        else:
+            path_file = '/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/'+file
+        mp4 = file.split("/")[1].split('.')[0]
+        mp4 = f'{mp4}_16f_W0_2.mp4'
+        if mp4 in os.listdir('ohloss_vis/NEW'):
+            continue
+        test.append(path_file)
+    # test_list = ['Abuse/Abuse030_x264.mp4',
+    #              'Arrest/Arrest024_x264.mp4',
+    #              'Arson/Arson016_x264.mp4',
+    #              'Assault/Assault011_x264.mp4',
+    #              'Burglary/Burglary079_x264.mp4',
+    #              'Explosion/Explosion017_x264.mp4',
+    #              'Fighting/Fighting018_x264.mp4',
+    #              'RoadAccidents/RoadAccidents002_x264.mp4',
+    #              'Robbery/Robbery106_x264.mp4',
+    #              'Shooting/Shooting048_x264.mp4',
+    #              'Shoplifting/Shoplifting031_x264.mp4',
+    #              'Stealing/Stealing036_x264.mp4',
+    #              'Vandalism/Vandalism036_x264.mp4']
+    for video in test:
+        print(video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0])
+        process_video(video, 0)
+        
+    '''
+    # process_video('/home/subin-oh/Nas-subin/SB-Oh/data/Anomaly-Detection-Dataset/Train/Fighting/Fighting033_x264.mp4', 0)
     process_video('/home/subin-oh/Nas-subin/SB-Oh/data/XD-Violence/Test/videos/Bullet.in.the.Head.1990__#01-26-30_01-27-34_label_B2-0-0.mp4', 0)
