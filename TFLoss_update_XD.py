@@ -159,8 +159,11 @@ class Detectron2Pose:
                 # [x,y,신뢰도]
                 if len(keypoints_predictions) == 0:
                     # print('No person detected')
+                    '''
+                    # 시각화
                     return filtered_person, vis_person
-                    # return filtered_person
+                    '''
+                    return filtered_person
                 else:
                     # 필터링할 keypoint 인덱스, COCO index는 0부터 시작하므로 1을 빼줍니다.
                     indices = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -200,15 +203,23 @@ class Detectron2Pose:
                             vis_person.append(keypoints_xy)
                             '''
                             filtered_person.append(normalized_keypoints)
-                    if len(filtered_person) <= 1:
-                        filtered_person = np.array(filtered_person)
-                        # print('No person detected with high confidence keypoints')
-                        # filtered_person = np.zeros((13, 3))
+                    if len(filtered_person) == 0:
+                        filtered_person = []
+                        vis_person = []
                         return filtered_person
                         '''
                         # 시각화
                         return filtered_person, vis_person
                         '''
+                    # elif len(filtered_person) == 1:
+                    #     # print('No person detected with high confidence keypoints')
+                    #     # filtered_person = np.zeros((13, 3))
+                        
+                    #     # return filtered_person
+                        
+                    #     # 시각화
+                    #     return filtered_person, vis_person
+                        
                     else:
                         filtered_person = np.array(filtered_person)
                         return filtered_person
@@ -216,7 +227,7 @@ class Detectron2Pose:
                         # 시각화
                         return filtered_person, vis_person
                         '''
-                
+                        
     def normalize(self, frame):
         # Find the minimum and maximum of the array
         min_val = frame.min()
@@ -286,7 +297,7 @@ def process_video(video, crop):
     # video_name = video.split('/')[-2]+'/'+video.split('/')[-1].split(".")[0]
     video_name = video.split('/')[-1].split(".mp4")[0]
     # 파일 이름에 video_name이 포함되어 있는지 확인
-    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
+    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     # name이 포함된 파일 리스트
@@ -486,7 +497,7 @@ if __name__ == '__main__':
     print(f"{str(crop)} crop")
     split_file = []
     # s = open('list/ucf-train.list', 'r')
-    s = open('/home/sb-oh/WVAD/UR-DMU-KD/list/XD_Train_center.list', 'r')
+    s = open('/home/subin-oh/code/WVED/origin25/UR-DMU-KD/list/XD_Train_center.list', 'r')
     for line in s:
         line = line.strip()
         line = line.split('/')[-1].split("__0")[0]
@@ -496,14 +507,14 @@ if __name__ == '__main__':
     # split_file.reverse()
     vid_list = []
     
-    path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
+    path = f"/home/subin-oh/Nas-subin/SB-Oh/data/HPE/XD_ACT/"
     if os.path.exists(path) == False:
         os.makedirs(path)
     list = os.listdir(path)
     
     for video_name in split_file:
         # 파일 이름에 video_name이 포함되어 있는지 확인
-        video_path = '/home/sb-oh/Nas-subin/SB-Oh/data/XD-Violence/Train/'+video_name+'.mp4'
+        video_path = '/home/subin-oh/Nas-subin/SB-Oh/data/XD-Violence/Train/'+video_name+'.mp4'
         # name이 포함된 파일 리스트
         name = video_name
         # crop_num=[]
