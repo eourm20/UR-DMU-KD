@@ -7,10 +7,14 @@ from config import *
 from train import *
 from xd_test import test
 from model import *
-from utils import Visualizer
-
+import clearml
+from clearml import Task
+import os
 from dataset_loader import *
 from tqdm import tqdm
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.use('Agg')
 
 if __name__ == "__main__":
     args = parse_args()
@@ -19,12 +23,11 @@ if __name__ == "__main__":
 
     config = Config(args)
     worker_init_fn = None
-   
-    if config.seed >= 0:
-        utils.set_seed(config.seed)
-        worker_init_fn = np.random.seed(config.seed)
-    
+    if torch.cuda.is_available():
+        torch.cuda.set_device(0)
+
     config.len_feature = 1024
+    task_logger = None
     net = WSAD(config.len_feature,flag = "Train", a_nums = 60, n_nums = 60)
     net = net.cuda()
 
@@ -44,17 +47,18 @@ if __name__ == "__main__":
             shuffle = False, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn)
 
-    test_info = {"step": [], "auc": [],"ap":[],"ac":[]}
+    test_info = {"step": [], "auc": [],"ap":[]}
     
     best_auc = 0
+    best_auc_update = 0
 
     criterion = AD_Loss()
     
     optimizer = torch.optim.Adam(net.parameters(), lr = config.lr[0],
         betas = (0.9, 0.999), weight_decay = 0.00005)
 
-    wind = Visualizer(env = 'XD_URDMU', port = "2022", use_incoming_socket = False)
-    test(net, config, wind, test_loader, test_info, 0)
+    # wind = Visualizer(env = 'XD_URDMU', port = "2022", use_incoming_socket = False)
+    test(net, config, test_loader, test_info, 0)
     for step in tqdm(
             range(1, config.num_iters + 1),
             total = config.num_iters,
@@ -68,17 +72,17 @@ if __name__ == "__main__":
 
         if (step - 1) % len(abnormal_train_loader) == 0:
             abnormal_loader_iter = iter(abnormal_train_loader)
-        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, wind, step)
-        if step % 10 == 0 and step > 10:
-            test(net, config, wind, test_loader, test_info, step)
-            if test_info["ap"][-1] > best_auc:
-                best_auc = test_info["ap"][-1]
-                utils.save_best_record(test_info, 
-                    os.path.join(config.output_path, "xd_best_record_{}.txt".format(config.seed)))
-
-                torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    "xd_trans_{}.pkl".format(config.seed)))
-            if step == config.num_iters:
-                torch.save(net.state_dict(), os.path.join(args.model_path, \
-                    "xd_trans_{}.pkl".format(step)))
-
+        train(net, normal_loader_iter,abnormal_loader_iter, optimizer, criterion, task_logger, step)
+        # early stopping 20번동안 best auc가 갱신되지 않으면 종료
+        test(net, config, test_loader, test_info, step)
+        if test_info["auc"][-1] > best_auc:
+            best_auc = test_info["auc"][-1]
+            best_auc_update = 0
+            utils.save_best_record(test_info, 
+                os.path.join(config.output_path, "XD_ALL_best_record.txt"))
+            torch.save(net.state_dict(), os.path.join(args.model_path, \
+                args.model_file.split('<')[0]+"_best.pkl"))
+        else:
+            best_auc_update += 1
+            if best_auc_update == 20:
+                break

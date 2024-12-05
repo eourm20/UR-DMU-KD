@@ -109,27 +109,24 @@ class XDVideo(data.DataLoader):
         self.modal=modal
         self.num_segments = num_segments
         self.len_feature = len_feature
-        if self.modal == 'all':
-            self.feature_path = []
-            if self.mode == "Train":
-                for _modal in ['RGB', 'Flow']:
-                    self.feature_path.append(os.path.join(self.data_path, "i3d-features",_modal))
-            else:
-                for _modal in ['RGBTest', 'FlowTest']:
-                    self.feature_path.append(os.path.join(self.data_path, "i3d-features",_modal))
-        else:
-            self.feature_path = os.path.join(self.data_path, modal)
-        split_path = os.path.join("list",'XD_{}.list'.format(self.mode))
-        split_file = open(split_path, 'r',encoding="utf-8")
+        
+        if self.mode == "Train":
+            split_path = os.path.join('list','XD_{}_center.list'.format(self.mode))
+        elif self.mode == "Test":
+            # split_path = os.path.join('list','UCF_{}.list'.format(self.mode))
+            split_path = os.path.join('list','XD_{}.list'.format(self.mode))
+        # split_path = os.path.join('list','UCF_{}_svr3.list'.format(self.mode))
+        split_file = open(split_path, 'r', encoding='utf-8')
         self.vid_list = []
+        
         for line in split_file:
             self.vid_list.append(line.split())
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
-                self.vid_list = self.vid_list[9525:]
+                self.vid_list = self.vid_list[1905:]
             elif is_normal is False:
-                self.vid_list = self.vid_list[:9525]
+                self.vid_list = self.vid_list[:1905]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal = [True/False]")
@@ -147,8 +144,7 @@ class XDVideo(data.DataLoader):
         label=0
         if "_label_A" not in vid_name:
             label=1  
-        video_feature = np.load(os.path.join(self.feature_path[0],
-                                vid_name )).astype(np.float32)
+        video_feature = np.load(vid_name).astype(np.float32)
         if self.mode == "Train":
             new_feature = np.zeros((self.num_segments,self.len_feature)).astype(np.float32)
             sample_index = utils.random_perturb(video_feature.shape[0],self.num_segments)

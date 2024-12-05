@@ -8,7 +8,7 @@ from sklearn.metrics import roc_curve,auc,precision_recall_curve
 import warnings
 warnings.filterwarnings("ignore")
 
-def test(net, config, wind, test_loader, test_info, step, model_file = None):
+def test(net, config, test_loader, test_info, step, model_file = None):
     with torch.no_grad():
         net.eval()
         net.flag = "Test"
@@ -40,19 +40,19 @@ def test(net, config, wind, test_loader, test_info, step, model_file = None):
         fpr, tpr, _ = roc_curve(frame_gt, frame_predict)
         auc_score = auc(fpr, tpr)
       
-        corrent_num = np.sum(np.array(cls_label) == np.array(cls_pre), axis=0)
-        accuracy = corrent_num / (len(cls_pre))
+        # corrent_num = np.sum(np.array(cls_label) == np.array(cls_pre), axis=0)
+        # accuracy = corrent_num / (len(cls_pre))
        
         precision, recall, th = precision_recall_curve(frame_gt, frame_predict,)
         ap_score = auc(recall, precision)
       
-        wind.plot_lines('roc_auc', auc_score)
-        wind.plot_lines('accuracy', accuracy)
-        wind.plot_lines('pr_auc', ap_score)
-        wind.lines('scores', frame_predict)
-        wind.lines('roc_curve', tpr, fpr)
+        # wind.plot_lines('roc_auc', auc_score)
+        # wind.plot_lines('accuracy', accuracy)
+        # wind.plot_lines('pr_auc', ap_score)
+        # wind.lines('scores', frame_predict)
+        # wind.lines('roc_curve', tpr, fpr)
         test_info["step"].append(step)
         test_info["auc"].append(auc_score)
         test_info["ap"].append(ap_score)
-        test_info["ac"].append(accuracy)
+        # test_info["ac"].append(accuracy)
         
