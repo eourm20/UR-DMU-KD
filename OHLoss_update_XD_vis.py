@@ -280,12 +280,20 @@ class Detectron2Pose:
                             vis_person.append(keypoints_xy)
                             
                             filtered_person.append(normalized_keypoints)
-                    if len(filtered_person) <= 1:
+                    if len(filtered_person) == 0:
+                        filtered_person = []
+                        vis_person = []
+                        # return filtered_person
+                        
+                        # 시각화
+                        return filtered_person, vis_person
+                        
+                    elif len(filtered_person) == 1:
                         # print('No person detected with high confidence keypoints')
                         # filtered_person = np.zeros((13, 3))
                         
                         # return filtered_person
-                        
+
                         # 시각화
                         return filtered_person, vis_person
                         

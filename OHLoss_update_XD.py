@@ -280,7 +280,15 @@ class Detectron2Pose:
                             vis_person.append(keypoints_xy)
                             '''
                             filtered_person.append(normalized_keypoints)
-                    if len(filtered_person) <= 1:
+                    if len(filtered_person) == 0:
+                        filtered_person = []
+                        vis_person = []
+                        return filtered_person
+                        '''
+                        # 시각화
+                        return filtered_person, vis_person
+                        '''
+                    elif len(filtered_person) == 1:
                         # print('No person detected with high confidence keypoints')
                         # filtered_person = np.zeros((13, 3))
                         
@@ -541,7 +549,7 @@ def process_video(video, crop):
 
 if __name__ == '__main__':
     crop = 0
-    print(f"{str(crop)} crop reverse")
+    print(f"{str(crop)} crop")
     split_file = []
     # s = open('list/ucf-train.list', 'r')
     s = open('/home/sb-oh/WVAD/UR-DMU-KD/list/XD_Train_center.list', 'r')
@@ -551,7 +559,7 @@ if __name__ == '__main__':
         split_file.append(line)
 
     
-    split_file.reverse()
+    # split_file.reverse()
     vid_list = []
     
     path = f"/home/sb-oh/Nas-subin/SB-Oh/data/HPE/XD_ACD/"
@@ -591,6 +599,7 @@ if __name__ == '__main__':
         
     for q in range(len(vid_list)):
         video = vid_list[q]
+        print(video)
         print(q,"/",len(vid_list),end="\r")
         process_video(video, crop)   
     
