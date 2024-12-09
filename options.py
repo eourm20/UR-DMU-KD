@@ -14,10 +14,10 @@ def parse_args():
     parser.add_argument('--batch_size', type = int, default = 64)
     parser.add_argument('--num_workers', type = int, default = 0)
     parser.add_argument('--num_segments', type = int, default = 32)
-    parser.add_argument('--seed', type = int, default = 1102, help = 'random seed (-1 for no manual seed)')
-    parser.add_argument('--model_file', type = str, default = "ALL(HP)2_{}.pkl".format(seed), help = 'the path of pre-trained model file')
+    parser.add_argument('--seed', type = int, default = 1105, help = 'random seed (-1 for no manual seed)')
+    parser.add_argument('--model_file', type = str, default = "XD_ALL6(HPE)_{}.pkl".format(seed), help = 'the path of pre-trained model file')
     parser.add_argument('--debug', action = 'store_true')
-    parser.add_argument('--HPLoss_w', type = float, default = 0.5, help = 'weight of HP Loss')
+    parser.add_argument('--HPLoss_w', type = float, default = 1, help = 'weight of HP Loss')
 
     return init_args(parser.parse_args())
 

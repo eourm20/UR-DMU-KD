@@ -111,33 +111,45 @@ class XDVideo(data.DataLoader):
         self.len_feature = len_feature
         
         if self.mode == "Train":
-            split_path = os.path.join('list','XD_{}_center.list'.format(self.mode))
+            split_path = os.path.join('list','XD_{}_center_newdata_svr3.list'.format(self.mode))
         elif self.mode == "Test":
             # split_path = os.path.join('list','UCF_{}.list'.format(self.mode))
-            split_path = os.path.join('list','XD_{}.list'.format(self.mode))
+            split_path = os.path.join('list','XD_{}_center_svr3.list'.format(self.mode))
         # split_path = os.path.join('list','UCF_{}_svr3.list'.format(self.mode))
         split_file = open(split_path, 'r', encoding='utf-8')
         self.vid_list = []
         
+        self.oh_att_list = []
+        self.tf_att_list = []
+        
         for line in split_file:
             self.vid_list.append(line.split())
+            if self.mode == "Train":
+                self.oh_att_list.append([line.split()[0].replace(f'XD-Violence/i3d-features/RGB/','HPE/XD_ACD/').replace('__0','')])
+                self.tf_att_list.append([line.split()[0].replace(f'XD-Violence/i3d-features/RGB/','HPE/XD_ACT/').replace('__0','')])
         split_file.close()
         if self.mode == "Train":
             if is_normal is True:
-                self.vid_list = self.vid_list[1905:]
+                self.vid_list = self.vid_list[1905:]#1905
+                self.oh_att_list = self.oh_att_list[1905:]
+                self.tf_att_list = self.tf_att_list[1905:]
             elif is_normal is False:
                 self.vid_list = self.vid_list[:1905]
+                self.oh_att_list = self.oh_att_list[:1905]
+                self.tf_att_list = self.tf_att_list[:1905]
             else:
                 assert (is_normal == None)
                 print("Please sure is_normal = [True/False]")
                 self.vid_list=[]
+                self.oh_att_list=[]
+                self.tf_att_list=[]
         
     def __len__(self):
         return len(self.vid_list)
 
     def __getitem__(self, index):
-        data,label = self.get_data(index)
-        return data, label
+        data,label,oh_att,tf_att = self.get_data(index)
+        return data,label,oh_att,tf_att
 
     def get_data(self, index):
         vid_name = self.vid_list[index][0]
@@ -146,13 +158,33 @@ class XDVideo(data.DataLoader):
             label=1  
         video_feature = np.load(vid_name).astype(np.float32)
         if self.mode == "Train":
+            oh_att_info = self.oh_att_list[index][0]
+            tf_att_info = self.tf_att_list[index][0]
+            oh_att = np.load(oh_att_info).astype(np.float32)
+            tf_att = np.load(tf_att_info).astype(np.float32)
+            if len(oh_att) != len(video_feature):
+                oh_att = np.concatenate([oh_att, np.repeat(oh_att[-1], len(video_feature) - len(oh_att))])
+            if len(tf_att) != len(video_feature):
+                tf_att = np.concatenate([tf_att, np.repeat(tf_att[-1], len(video_feature) - len(tf_att))])
+                
             new_feature = np.zeros((self.num_segments,self.len_feature)).astype(np.float32)
+            new_oh_att = np.zeros((self.num_segments,)).astype(np.float32)
+            new_tf_att = np.zeros((self.num_segments,)).astype(np.float32)
             sample_index = utils.random_perturb(video_feature.shape[0],self.num_segments)
             for i in range(len(sample_index)-1):
                 if sample_index[i] == sample_index[i+1]:
                     new_feature[i,:] = video_feature[sample_index[i],:]
+                    new_oh_att[i] = oh_att[sample_index[i]]
+                    new_tf_att[i] = tf_att[sample_index[i]]
                 else:
                     new_feature[i,:] = video_feature[sample_index[i]:sample_index[i+1],:].mean(0)
+                    new_oh_att[i] = oh_att[sample_index[i]:sample_index[i+1]].mean(0)
+                    new_tf_att[i] = tf_att[sample_index[i]:sample_index[i+1]].mean(0)
                     
             video_feature = new_feature
-        return video_feature, label    
+            oh_att = new_oh_att
+            tf_att = new_tf_att
+        if self.mode == "Test":
+            return video_feature, label, [], []
+        else:
+            return video_feature, label, oh_att, tf_att    

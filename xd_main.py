@@ -27,7 +27,18 @@ if __name__ == "__main__":
         torch.cuda.set_device(0)
 
     config.len_feature = 1024
-    task_logger = None
+    
+    Task.set_credentials(
+        api_host="https://api.clear.ml",
+        web_host="https://app.clear.ml",
+        files_host="https://files.clear.ml",
+        key='60B49RW4U8P2S7DS15DW',
+        secret='ctQIyHsC0rxTyh8RR8I3aGFOD9ylMveWurwVcPkhGBoMMwHsX8'
+    )
+    task = clearml.Task.init(project_name="UR-DMU-HPE2", task_name="XD-ALL2(HP)0.9_1_early20-", task_type=Task.TaskTypes.training)
+    task_logger = task.get_logger()
+    
+    # task_logger = None
     net = WSAD(config.len_feature,flag = "Train", a_nums = 60, n_nums = 60)
     net = net.cuda()
 
@@ -43,7 +54,7 @@ if __name__ == "__main__":
             worker_init_fn = worker_init_fn, drop_last = True)
     test_loader = data.DataLoader(
         XDVideo(root_dir = config.root_dir, mode = 'Test', modal = config.modal, num_segments = config.num_segments, len_feature = config.len_feature),
-            batch_size = 5,
+            batch_size = 1,
             shuffle = False, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn)
 
@@ -52,7 +63,7 @@ if __name__ == "__main__":
     best_auc = 0
     best_auc_update = 0
 
-    criterion = AD_Loss()
+    criterion = AD_Loss(config.HPLoss_w)
     
     optimizer = torch.optim.Adam(net.parameters(), lr = config.lr[0],
         betas = (0.9, 0.999), weight_decay = 0.00005)
@@ -79,7 +90,7 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "XD_ALL_best_record.txt"))
+                os.path.join(config.output_path, "XD_ALL6(HPE)_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:

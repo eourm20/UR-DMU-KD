@@ -44,7 +44,7 @@ class AD_Loss(nn.Module):
             oh = (oh - oh.min()) / (oh.max() - oh.min())
 
         # oh_loss = self.bce(oh, _label)
-        tf = torch.topk(tf_att, t//16 + 1, dim = -1)[0].max(-1)[0]
+        tf = torch.topk(tf_att*2.5, t//16 + 1, dim = -1)[0].max(-1)[0]
         if tf.max() > 1:
             tf = (tf - tf.min()) / (tf.max() - tf.min())
         # tf_loss = self.bce(tf, _label)
@@ -85,7 +85,10 @@ class AD_Loss(nn.Module):
         cost = anomaly_loss + 0.1 * (A_loss + panomaly_loss + N_loss + A_Nloss) + 0.1 * triplet + 0.001 * kl_loss + 0.0001 * distance
 
         # HPLoss 추가
-        new_cost = 0.5*cost + self.HPLoss_w * hp_loss
+        new_cost = 0.9*cost + self.HPLoss_w * hp_loss
+        # print("HP Loss: ", hp_loss)
+        # print('cost:', cost)
+        # print('new_cost:', new_cost)
         
         loss['total_loss'] = cost
         loss['att_loss'] = anomaly_loss
@@ -124,8 +127,8 @@ def train(net, normal_loader, abnormal_loader, optimizer, criterion, task_logger
     cost.backward()
     optimizer.step()
     if task_logger is not None:
-        task_logger.report_scalar(title = 'Supervised Loss', series = 'total_loss', value = loss['total_loss'].item(), iteration = index)
+        task_logger.report_scalar(title = 'Supervised Loss Detail', series = 'total_loss', value = loss['total_loss'].item()*0.9, iteration = index)
         task_logger.report_scalar(title = 'Supervised Loss', series = 'new_total_loss', value = loss['new_total_loss'].item(), iteration = index)
         # task_logger.report_scalar(title = 'Supervised Loss', series = 'OHLoss', value = loss['oh_loss'].item(), iteration = index)
         # task_logger.report_scalar(title = 'Supervised Loss', series = 'TFLoss', value = loss['tf_loss'].item(), iteration = index)
-        task_logger.report_scalar(title = 'Supervised Loss', series = 'HPLoss', value = loss['hp_loss'].item(), iteration = index)
+        task_logger.report_scalar(title = 'Supervised Loss Detail', series = 'HPLoss', value = loss['hp_loss'].item()*1, iteration = index)
