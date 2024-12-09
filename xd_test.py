@@ -18,41 +18,50 @@ def test(net, config, test_loader, test_info, step, model_file = None):
         load_iter = iter(test_loader)
         frame_gt = np.load("frame_label/xd_gt.npy")
         frame_predict = None
+        
         cls_label = []
         cls_pre = []
-        for i in range(len(test_loader.dataset)//5):
+        temp_predict = torch.zeros((0)).cuda()
+        
+        for i in range(len(test_loader.dataset)):
+            
+            
 
             _data, _label = next(load_iter)
             
             _data = _data.cuda()
             _label = _label.cuda()
-            cls_label.append(int(_label[0]))
+            
             res = net(_data)   
-        
-            a_predict = res["frame"].cpu().numpy().mean(0)   
+            a_predict = res["frame"]
+            # temp_predict = torch.cat([temp_predict, a_predict], dim=0)
+            # if (i + 1) % 5 == 0 :
+            cls_label.append(int(_label))
+            a_predict = a_predict.cpu().numpy()
+            
             cls_pre.append(1 if a_predict.max()>0.5 else 0)          
             fpre_ = np.repeat(a_predict, 16)
             if frame_predict is None:         
                 frame_predict = fpre_
             else:
-                frame_predict = np.concatenate([frame_predict, fpre_])   
-
-        fpr, tpr, _ = roc_curve(frame_gt, frame_predict)
+                frame_predict = np.concatenate([frame_predict, fpre_])  
+                # temp_predict = torch.zeros((0)).cuda()
+    
+        fpr,tpr,_ = roc_curve(frame_gt, frame_predict)
         auc_score = auc(fpr, tpr)
-      
+    
         # corrent_num = np.sum(np.array(cls_label) == np.array(cls_pre), axis=0)
         # accuracy = corrent_num / (len(cls_pre))
-       
+        
         precision, recall, th = precision_recall_curve(frame_gt, frame_predict,)
         ap_score = auc(recall, precision)
-      
+
         # wind.plot_lines('roc_auc', auc_score)
         # wind.plot_lines('accuracy', accuracy)
         # wind.plot_lines('pr_auc', ap_score)
         # wind.lines('scores', frame_predict)
-        # wind.lines('roc_curve', tpr, fpr)
+        # wind.lines('roc_curve',tpr,fpr)
         test_info["step"].append(step)
         test_info["auc"].append(auc_score)
         test_info["ap"].append(ap_score)
         # test_info["ac"].append(accuracy)
-        

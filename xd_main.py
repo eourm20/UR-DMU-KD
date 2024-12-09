@@ -43,7 +43,7 @@ if __name__ == "__main__":
             worker_init_fn = worker_init_fn, drop_last = True)
     test_loader = data.DataLoader(
         XDVideo(root_dir = config.root_dir, mode = 'Test', modal = config.modal, num_segments = config.num_segments, len_feature = config.len_feature),
-            batch_size = 5,
+            batch_size = 1,
             shuffle = False, num_workers = config.num_workers,
             worker_init_fn = worker_init_fn)
 
@@ -79,10 +79,10 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(config.output_path, "XD_ALL_best_record.txt"))
+                os.path.join(config.output_path, "XD_ALL3_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('<')[0]+"_best.pkl"))
         else:
             best_auc_update += 1
-            if best_auc_update == 20:
+            if best_auc_update == 100:
                 break
