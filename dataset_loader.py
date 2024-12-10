@@ -92,8 +92,8 @@ class XDVideo(data.DataLoader):
         if self.mode == "Train":
             split_path = os.path.join('list','XD_{}_center_newdata.list'.format(self.mode))
         elif self.mode == "Test":
-            # split_path = os.path.join('list','UCF_{}.list'.format(self.mode))
-            split_path = os.path.join('list','XD_{}_center.list'.format(self.mode))
+            split_path = os.path.join('list','XD_{}.list'.format(self.mode))
+            # split_path = os.path.join('list','XD_{}_center.list'.format(self.mode))
         # split_path = os.path.join('list','UCF_{}_svr3.list'.format(self.mode))
         split_file = open(split_path, 'r', encoding='utf-8')
         self.vid_list = []
