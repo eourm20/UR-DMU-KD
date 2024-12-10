@@ -108,7 +108,7 @@ if __name__ == "__main__":
             best_auc = test_info["auc"][-1]
             best_auc_update = 0
             utils.save_best_record(test_info, 
-                os.path.join(args.root_dir, "UCF_ALL3_best_record.txt"))
+                os.path.join(args.root_dir, "UCF_ALL3ALL_best_record.txt"))
             torch.save(net.state_dict(), os.path.join(args.model_path, \
                 args.model_file.split('.pkl')[0]+"_best.pkl"))
         else:

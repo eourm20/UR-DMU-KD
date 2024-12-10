@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--ratios', type=int, nargs='+', default = [16, 32])
     parser.add_argument('--kernel_sizes', type=int, nargs='+', default = [1, 1, 1])
     # parser.add_argument('--model_file', type = str, default = "XD_ALL3.pkl", help = 'the path of pre-trained model file')
-    parser.add_argument('--model_file', type = str, default = "UCF_ALL3.pkl", help = 'the path of pre-trained model file')
+    parser.add_argument('--model_file', type = str, default = "UCF_ALL3ALL.pkl", help = 'the path of pre-trained model file')
 
     return init_args(parser.parse_args())
 

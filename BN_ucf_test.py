@@ -21,7 +21,7 @@ def test(net, config, test_loader, test_info, step, model_file = None):
         
         cls_label = []
         cls_pre = []
-        # temp_predict = torch.zeros((0)).cuda()
+        temp_predict = torch.zeros((0)).cuda()
         
         for i in range(len(test_loader.dataset)):
             
@@ -33,18 +33,19 @@ def test(net, config, test_loader, test_info, step, model_file = None):
             _label = _label.cuda()
             
             res = net(_data)   
-            a_predict = res.cpu().numpy()
-            # temp_predict = torch.cat([temp_predict, a_predict], dim=0)
-            # if (i + 1) % 10 == 0 :
-            cls_label.append(int(_label))
             
-            cls_pre.append(1 if a_predict.max()>0.5 else 0)          
-            fpre_ = np.repeat(a_predict, 16)
-            if frame_predict is None:         
-                frame_predict = fpre_
-            else:
-                frame_predict = np.concatenate([frame_predict, fpre_])  
-                # temp_predict = torch.zeros((0)).cuda()
+            temp_predict = torch.cat([temp_predict, res], dim=0)
+            a_predict = res.cpu().numpy()
+            if (i + 1) % 10 == 0 :
+                cls_label.append(int(_label))
+                
+                cls_pre.append(1 if a_predict.max()>0.5 else 0)          
+                fpre_ = np.repeat(a_predict, 16)
+                if frame_predict is None:         
+                    frame_predict = fpre_
+                else:
+                    frame_predict = np.concatenate([frame_predict, fpre_])  
+                temp_predict = torch.zeros((0)).cuda()
     
         fpr,tpr,_ = roc_curve(frame_gt, frame_predict)
         auc_score = auc(fpr, tpr)
